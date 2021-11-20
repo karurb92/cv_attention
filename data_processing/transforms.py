@@ -1,5 +1,138 @@
-#transforms:
-# rescale to number of pixels which divides by number of patches per dim
-# normalization
-# cutting into patches
-# what else?
+'''
+Here we want to define all the transformations that we need to apply to the image.
+The idea is to be able to call them in one go with ComposeTransform class (look at the bottom of this file). This will be later used by data generator
+
+- input: 1 image obtained by calling Cifar100 class. (I do not know yet what shape exactly it will have but lets assume numpy 32x32x3)
+- output: list of patches transformed (numpy array of dimensionality patches_num x 32 x 32 x 3)
+
+what kind of transforms do we need:
+- resizing (some class that would perform resizing of the image). i would say input and output dimensionalities should be both parameters (and not fixed 32x32)
+- cutting into patches (Patches class)
+- maybe normalization? but let's treat it as second priority, because maybe we can just add 1 special layer at the beginning of the model which is doing it for us
+
+so far I just copied couple of classes that might be a good start
+again, this is heavily inspired by I2DL, exercise 1
+'''
+
+
+
+import numpy as np
+
+class Patches(layers.Layer):
+    def __init__(self, patch_size):
+        super(Patches, self).__init__()
+        self.patch_size = patch_size
+
+    def call(self, images):
+        batch_size = tf.shape(images)[0]
+        patches = tf.image.extract_patches(
+            images=images,
+            sizes=[1, self.patch_size, self.patch_size, 1],
+            strides=[1, self.patch_size, self.patch_size, 1],
+            rates=[1, 1, 1, 1],
+            padding="VALID",
+        )
+        patch_dims = patches.shape[-1]
+        patches = tf.reshape(patches, [batch_size, -1, patch_dims])
+        return patches
+
+class RescaleTransform:
+    """Transform class to rescale images to a given range"""
+    def __init__(self, out_range=(0, 1), in_range=(0, 255)):
+        """
+        :param out_range: Value range to which images should be rescaled to
+        :param in_range: Old value range of the images
+            e.g. (0, 255) for images with raw pixel values
+        """
+        self.min = out_range[0]
+        self.max = out_range[1]
+        self._data_min = in_range[0]
+        self._data_max = in_range[1]
+
+    def __call__(self, images):
+        ########################################################################
+        # TODO:                                                                #
+        # Rescale the given images:                                            #
+        #   - from (self._data_min, self._data_max)                            #
+        #   - to (self.min, self.max)                                          #
+        ########################################################################
+
+        images -= self._data_min
+        images /= (self._data_max - self._data_min) / (self.max - self.min)
+        images += self.min
+
+        ########################################################################
+        #                           END OF YOUR CODE                           #
+        ########################################################################
+        return images
+    
+
+def compute_image_mean_and_std(images):
+    """
+    Calculate the per-channel image mean and standard deviation of given images
+    :param images: numpy array of shape NxHxWxC
+        (for N images with C channels of spatial size HxW)
+    :returns: per-channels mean and std; numpy array of shape C
+    """
+    mean, std = None, None
+    ########################################################################
+    # TODO:                                                                #
+    # Calculate the per-channel mean and standard deviation of the images  #
+    # Hint: You can use numpy to calculate the mean and standard deviation #
+    ########################################################################
+
+    mean = np.mean(images, axis=(0, 1, 2))
+    std = np.std(images, axis=(0, 1, 2))
+
+    ########################################################################
+    #                           END OF YOUR CODE                           #
+    ########################################################################
+    return mean, std
+
+
+class NormalizeTransform:
+    """
+    Transform class to normalize images using mean and std
+    Functionality depends on the mean and std provided in __init__():
+        - if mean and std are single values, normalize the entire image
+        - if mean and std are numpy arrays of size C for C image channels,
+            then normalize each image channel separately
+    """
+    def __init__(self, mean, std):
+        """
+        :param mean: mean of images to be normalized
+            can be a single value, or a numpy array of size C
+        :param std: standard deviation of images to be normalized
+             can be a single value or a numpy array of size C
+        """
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, images):
+        ########################################################################
+        # TODO:                                                                #
+        # normalize the given images:                                          #
+        #   - substract the mean of dataset                                    #
+        #   - divide by standard deviation                                     #
+        ########################################################################
+
+        images = (images - self.mean.reshape(1,1,1,len(self.mean))) / self.std.reshape(1,1,1,len(self.std))
+
+        ########################################################################
+        #                           END OF YOUR CODE                           #
+        ########################################################################
+        return images
+
+
+class ComposeTransform:
+    """Transform class that combines multiple other transforms into one"""
+    def __init__(self, transforms):
+        """
+        :param transforms: transforms to be combined
+        """
+        self.transforms = transforms
+
+    def __call__(self, images):
+        for transform in self.transforms:
+            images = transform(images)
+        return images

@@ -1,5 +1,12 @@
 """
 Definition of Cifar100 dataset class
+
+- the idea is that dataset will be stored as an object which you can call for consecutive images
+- if you want to use it, just download original dataset (from toronto site) and unzip it into ".../data/" inside the repository
+- if we ever decide to work with another dataset, the only thing that we will need to do is to write such a class for it. the idea is that all the rest stays the same
+- if you wanna familiarize yourself more with the concept of having such class, check I2DL course, exercise 3. code below is 100% inspired by it
+
+Karol will finish it
 """
 
 import os
