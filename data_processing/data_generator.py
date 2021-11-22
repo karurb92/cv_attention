@@ -110,3 +110,8 @@ class DataLoader:
         #                           END OF YOUR CODE                           #
         ########################################################################
         return length
+
+class DataAugmentation:
+    #creating variants of images by scaling, rotating for better performance
+    def __init__(self):
+        return self
