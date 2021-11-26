@@ -29,7 +29,7 @@ class Cifar100():
     @staticmethod
     def _unpickle(file):
         with open(file, 'rb') as fo:
-            dict = pickle.load(fo, encoding='bytes')
+            dict = pickle.load(fo, encoding='latin1') #previously 'bytes'
         return dict
 
     @staticmethod

@@ -17,14 +17,14 @@ these are just for inspiration
 
 
 import numpy as np
-
+from data_processing.cifar_100 import Cifar100
 
 class DataLoader:
     """
     Dataloader Class
     Defines an iterable batch-sampler over a given dataset
     """
-    def __init__(self, dataset, batch_size=1, shuffle=False, drop_last=False):
+    def __init__(self, batch_size=1, shuffle=False, drop_last=False):
         """
         :param dataset: dataset from which to load the data
         :param batch_size: how many samples per batch to load
@@ -34,11 +34,14 @@ class DataLoader:
             If False and the size of dataset is not divisible by the batch
             size, then the last batch will be smaller.
         """
-        self.dataset = dataset
+        trainData = Cifar100._unpickle("data/train")
+        metaData = Cifar100._unpickle("data/meta")
+        self.dataset = trainData
+        self.trainData = trainData
+        self.metaData = metaData
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.drop_last = drop_last
-
     def __iter__(self):
         ########################################################################
         # TODO:                                                                #
@@ -59,7 +62,6 @@ class DataLoader:
         #       - build_batch_iterator                                         #
         #     in section 1 of the notebook.                                    #
         ########################################################################
-
         def batch_to_numpy(batch):
             numpy_batch = {}
             for key, value in batch.items():
