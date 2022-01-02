@@ -1,4 +1,3 @@
-#Data generator to be written
 '''
 This thing will be generating our batches for the training
 
@@ -12,19 +11,14 @@ example of dataloader from I2DL course is below, but we can also look at the one
 these are just for inspiration
 '''
 
-
-
-
-
 import numpy as np
-from data_processing.cifar_100 import Cifar100
 
-class DataLoader:
+class DataGenerator:
     """
-    Dataloader Class
+    Datagenerator Class
     Defines an iterable batch-sampler over a given dataset
     """
-    def __init__(self, batch_size=1, shuffle=False, drop_last=False):
+    def __init__(self, dataset, batch_size=1, shuffle=True, drop_last=False):
         """
         :param dataset: dataset from which to load the data
         :param batch_size: how many samples per batch to load
@@ -34,34 +28,16 @@ class DataLoader:
             If False and the size of dataset is not divisible by the batch
             size, then the last batch will be smaller.
         """
-        trainData = Cifar100._unpickle("data/train")
-        metaData = Cifar100._unpickle("data/meta")
-        self.dataset = trainData
-        self.trainData = trainData
-        self.metaData = metaData
+        self.dataset = dataset
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.drop_last = drop_last
+
     def __iter__(self):
-        ########################################################################
-        # TODO:                                                                #
-        # Define an iterable function that samples batches from the dataset.   #
-        # Each batch should be a dict containing numpy arrays of length        #
-        # batch_size (except for the last batch if drop_last=True)             #
-        # Hints:                                                               #
-        #   - np.random.permutation(n) can be used to get a list of all        #
-        #     numbers from 0 to n-1 in a random order                          #
-        #   - To load data efficiently, you should try to load only those      #
-        #     samples from the dataset that are needed for the current batch.  #
-        #     An easy way to do this is to build a generator with the yield    #
-        #     keyword, see https://wiki.python.org/moin/Generators             #
-        #   - Have a look at the "DataLoader" notebook first. This function is #
-        #     supposed to combine the functions:                               #
-        #       - combine_batch_dicts                                          #
-        #       - batch_to_numpy                                               #
-        #       - build_batch_iterator                                         #
-        #     in section 1 of the notebook.                                    #
-        ########################################################################
+        '''
+        Defines an iterable function that samples batches from the dataset.
+        Each batch is a dict containing numpy arrays of length batch_size (except for the last batch if drop_last=True)
+        '''
         def batch_to_numpy(batch):
             numpy_batch = {}
             for key, value in batch.items():
@@ -93,27 +69,12 @@ class DataLoader:
                 yield batch_to_numpy(combine_batch_dicts(batch))  # use yield keyword to define a iterable generator
                 batch = []
 
-        ########################################################################
-        #                           END OF YOUR CODE                           #
-        ########################################################################
 
     def __len__(self):
-        length = None
-        ########################################################################
-        # TODO:                                                                #
-        # Return the length of the dataloader                                  #
-        # Hint: this is the number of batches you can sample from the dataset. #
-        # Don't forget to check for drop last!                                 #
-        ########################################################################
-
+        '''
+        Returns number of batches obtainable from the dataset
+        '''
         return len(self.dataset) // self.batch_size + (1 - int(self.drop_last))
 
-        ########################################################################
-        #                           END OF YOUR CODE                           #
-        ########################################################################
-        return length
 
-class DataAugmentation:
-    #creating variants of images by scaling, rotating for better performance
-    def __init__(self):
-        return self
+

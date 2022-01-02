@@ -5,25 +5,23 @@ Definition of Cifar100 dataset class
 - if you want to use it, just download original dataset (from toronto site) and unzip it into ".../data/" inside the repository
 - if we ever decide to work with another dataset, the only thing that we will need to do is to write such a class for it. the idea is that all the rest stays the same
 - if you wanna familiarize yourself more with the concept of having such class, check I2DL course, exercise 3. code below is 100% inspired by it
-
-Karol will finish it
 """
 
-import os
 import numpy as np
-from PIL import Image
 import pickle
+import random
 
 
 class Cifar100():
     """CIFAR-100 dataset class"""
-    def __init__(self, root, transform=None):
 
+    def __init__(self, root, purpose, seed, split=0.8, transform=None):
         self.root_path = root
+        self.seed = seed
+        self.split = split
+        self.purpose = purpose
         self.classes = self._find_classes(directory=self.root_path)
-        self.images, self.labels = self._make_dataset(directory=self.root_path)
-
-        # transform function that we will apply later for data preprocessing
+        self.images, self.labels = self._make_dataset(directory=self.root_path, purpose=self.purpose, split=self.split, seed=self.seed)
         self.transform = transform
 
     @staticmethod
@@ -40,12 +38,11 @@ class Cifar100():
         :returns: dict that maps label to a class
         """
         meta_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\meta')
-        classes = {idx : label.decode('ascii') for idx, label in enumerate(meta_file[b'coarse_label_names'])}
+        classes = {idx : label for idx, label in enumerate(meta_file['coarse_label_names'])}
         return classes
 
-    ### TO BE FINISHED
     @staticmethod
-    def _make_dataset(directory):
+    def _make_dataset(directory, purpose, split, seed):
         """
         Create the image dataset by preparing a list of samples
         :param directory: root directory of the dataset
@@ -54,50 +51,47 @@ class Cifar100():
             - labels is a list containing one label per image
         """
 
-        images, labels = [], []
-        dirs = ['train', 'test']
-
-        for dir in dirs:
-            data_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\{dir}')
-            images.append(data_file[b'data'])
-            labels.append(data_file[b'coarse_labels'])
-            assert len(images) == len(labels)
+        if purpose=='train':
+            data_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\train')
+            n = len(data_file['data'])
+            random.seed(seed)
+            random_mask = random.sample([i for i in range(n)], int(split*n))
+            images = np.array(data_file['data'])[random_mask].astype(float)
+            labels = np.array(data_file['coarse_labels'])[random_mask]
             return images, labels
+        elif purpose=='val':
+            data_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\train')
+            n = len(data_file['data'])
+            random.seed(seed)
+            random_mask = random.sample([i for i in range(n)], int(split*n))
+            images = np.delete(np.array(data_file['data']), random_mask, axis=0).astype(float)
+            labels = np.delete(np.array(data_file['coarse_labels']), random_mask, axis=0)
+            return images, labels
+        elif purpose=='test':
+            data_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\test')
+            return np.array(data_file['data']).astype(float), data_file['coarse_labels']
+
 
     def __len__(self):
         """Return number of images in the dataset"""
         return(len(self.images))
 
-    ### TO BE FINISHED
-    @staticmethod
-    def load_image_as_numpy(image_path):
-        """Load image from image_path as numpy array"""
-        return np.asarray(Image.open(image_path), dtype=float)
 
-    ### TO BE FINISHED
     def __getitem__(self, index):
-        data_dict = None
-        ########################################################################
-        # TODO:                                                                #
-        # create a dict of the data at the given index in your dataset         #
-        # The dict should be of the following format:                          #
-        # {"image": <i-th image>,                                              #
-        # "label": <label of i-th image>}                                      #
-        # Hints:                                                               #
-        #   - use load_image_as_numpy() to load an image from a file path      #
-        #   - If applicable (Task 4: 'Transforms and Image Preprocessing'),    #
-        #     make sure to apply self.transform to the image:                  #                           
-        #     image_transformed = self.transform(image)                        #
-        ########################################################################
+        """
+        Creates a dict of the data at the given index:
+            {"image": <i-th image>,                                              #
+             "label": <label of i-th image>} 
+        """
 
         data_dict = {}
+
         if self.transform is None:
-            data_dict['image'] = self.load_image_as_numpy(self.images[index])
+            data_dict['image'] = self.images[index]
         else:
-            data_dict['image'] = self.transform(self.load_image_as_numpy(self.images[index]))
+            for transform in self.transform:
+                data_dict['image'] = transform(self.images[index])
+        
         data_dict['label'] = self.labels[index]
 
-        ########################################################################
-        #                           END OF YOUR CODE                           #
-        ########################################################################
         return data_dict
