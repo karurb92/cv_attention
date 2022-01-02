@@ -17,7 +17,10 @@ again, this is heavily inspired by I2DL, exercise 1
 
 
 import numpy as np
-
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+import tensorflow_addons as tfa
 class Patches(layers.Layer):
     def __init__(self, patch_size):
         super(Patches, self).__init__()
@@ -136,3 +139,17 @@ class ComposeTransform:
         for transform in self.transforms:
             images = transform(images)
         return images
+
+class PatchEncoder(layers.Layer):
+    def __init__(self, num_patches, projection_dim):
+        super(PatchEncoder, self).__init__()
+        self.num_patches = num_patches
+        self.projection = layers.Dense(units=projection_dim)
+        self.position_embedding = layers.Embedding(
+            input_dim=num_patches, output_dim=projection_dim
+        )
+
+    def call(self, patch):
+        positions = tf.range(start=0, limit=self.num_patches, delta=1)
+        encoded = self.projection(patch) + self.position_embedding(positions)
+        return encoded
