@@ -16,28 +16,71 @@ again, this is heavily inspired by I2DL, exercise 1
 
 
 import numpy as np
+import torch
+import cv2
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflow_addons as tfa
+#import tensorflow_addons as tfa
 
-class Patches(layers.Layer):
+class PassThroughCNN:
+
+    def __init__(self, model):
+        self.model = model
+
+    def __call__(self, img_dict, model):
+        #img_dict['image'] is of [4,3,224,224]
+        images = self.model.forward(img_dict['image'])
+        #images is of [4,512,7,7]
+        img_dict['image'] = images
+        return img_dict
+
+
+class Resize:
+
+    def __init__(self, new_size=(224,224), interpolation=cv2.INTER_CUBIC):
+        self.new_size = new_size
+        self.interpolation = interpolation
+    
+    def __call__(self, img_dict):
+        resized_imgs = []
+        for img in img_dict['image']:
+            resized_img = cv2.resize(np.transpose(img, (1, 2, 0)), dsize=self.new_size, interpolation=self.interpolation)
+            resized_imgs.append(resized_img)
+        img_dict['image'] = np.transpose(np.array(resized_imgs), (0, 3, 1, 2))
+
+        return img_dict
+
+
+class Patches:
+
     def __init__(self, patch_size):
-        super(Patches, self).__init__()
         self.patch_size = patch_size
+    
+    def __call__(self, img_dict):
 
-    def call(self, images):
-        batch_size = tf.shape(images)[0]
-        patches = tf.image.extract_patches(
-            images=images,
-            sizes=[1, self.patch_size, self.patch_size, 1],
-            strides=[1, self.patch_size, self.patch_size, 1],
-            rates=[1, 1, 1, 1],
-            padding="VALID",
-        )
-        patch_dims = patches.shape[-1]
-        patches = tf.reshape(patches, [batch_size, -1, patch_dims])
-        return patches
+        def img_to_patch(x):
+            """
+            Inputs:
+                x - torch.Tensor representing the image of shape [B, C, H, W]
+                patch_size - Number of pixels per dimension of the patches (integer)
+
+            """
+            x = x[None, :]
+            x = torch.tensor(x)
+            B, H, W, C = x.shape
+            x = x.reshape(B, H//self.patch_size, self.patch_size, W//self.patch_size, self.patch_size, C)
+            x = x.permute(0, 1, 3, 5, 2, 4) # [B, H', W', C, p_H, p_W]
+            x = x.flatten(1,2)              # [B, H'*W', C, p_H, p_W]
+            x = x.squeeze()
+            return x
+
+        image = img_to_patch(img_dict['image']).numpy()
+        label = np.array([img_dict['label'] for i in image])
+        img_dict['image'], img_dict['label'] = image, label
+        return img_dict
+
 
 class RescaleTransform:
     """Transform class to rescale images to a given range"""
@@ -52,17 +95,19 @@ class RescaleTransform:
         self._data_min = in_range[0]
         self._data_max = in_range[1]
 
-    def __call__(self, images):
+    def __call__(self, img_dict):
         '''
         Rescales given image
            - from (self._data_min, self._data_max)
            - to (self.min, self.max)
         '''
+        images = img_dict['image']
         images -= self._data_min
         images /= (self._data_max - self._data_min) / (self.max - self.min)
         images += self.min
+        img_dict['image'] = images
 
-        return images
+        return img_dict
 
 
 class ReshapeToTensor:
@@ -70,45 +115,11 @@ class ReshapeToTensor:
     def __init__(self):
         pass
 
-    def __call__(self, image):
-        return image.reshape(3,32,32).transpose(1,2,0)
+    def __call__(self, img_dict):
+        image = img_dict['image']
+        image = image.reshape(3,32,32).transpose(1,2,0)
+        img_dict['image'] = image
+        return img_dict
 
 
 
-
-'''
-class Patches(layers.Layer):
-    def __init__(self, patch_size):
-        super(Patches, self).__init__()
-        self.patch_size = patch_size
-
-    def call(self, images):
-        batch_size = tf.shape(images)[0]
-        patches = tf.image.extract_patches(
-            images=images,
-            sizes=[1, self.patch_size, self.patch_size, 1],
-            strides=[1, self.patch_size, self.patch_size, 1],
-            rates=[1, 1, 1, 1],
-            padding="VALID",
-        )
-        patch_dims = patches.shape[-1]
-        patches = tf.reshape(patches, [batch_size, -1, patch_dims])
-        return patches
-
-
-'''
-
-
-class PatchEncoder(layers.Layer):
-    def __init__(self, num_patches, projection_dim):
-        super(PatchEncoder, self).__init__()
-        self.num_patches = num_patches
-        self.projection = layers.Dense(units=projection_dim)
-        self.position_embedding = layers.Embedding(
-            input_dim=num_patches, output_dim=projection_dim
-        )
-
-    def call(self, patch):
-        positions = tf.range(start=0, limit=self.num_patches, delta=1)
-        encoded = self.projection(patch) + self.position_embedding(positions)
-        return encoded
