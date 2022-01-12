@@ -7,44 +7,57 @@ There should be 2 classes here:
 below is an inspiration (in form of function instead of class)
 '''
 
-from tensorflow import keras
-from tensorflow.keras import layers
-from models.strat_bn_simplified import StratBN
+import torch
+import torch.nn as nn
+import torchvision.models as models
 
-# source:
-# https://adventuresinmachinelearning.com/introduction-resnet-tensorflow-2/
+class ResNet(nn.Module):
+
+    def __init__(self, num_classes=20, hparams=None):
+        super().__init__()
+
+        self.hparams=hparams
+        self.num_classes = num_classes
+        
+        self.feature_extractor = nn.Sequential(*(list(models.resnet18(pretrained=True).children())[:-2]))
+
+        '''
+        for param in self.feature_extractor.parameters():
+            param.requires_grad = False
+        ''' 
+        self.AdAvgP = nn.Sequential(nn.AdaptiveAvgPool2d(output_size=(1, 1)))
+        self.FC = nn.Sequential(nn.Linear(in_features=512, out_features=self.num_classes, bias=True))
 
 
-def res_net_block(input_data, filters, conv_size):
-    x = layers.Conv2D(filters, conv_size, activation='relu',
-                      padding='same')(input_data)
-    x = layers.BatchNormalization()(x)
-    x = layers.Conv2D(filters, conv_size, activation=None, padding='same')(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Add()([x, input_data])
-    x = layers.Activation('relu')(x)
-    return x
+    def forward(self, x):
+        """
+        Forward pass of the convolutional neural network. Should not be called
+        manually but by calling a model instance directly.
 
+        Inputs:
+        - x: PyTorch input Variable
+        """
+        
+        x = self.feature_extractor(x)
+        x = self.AdAvgP(x)
+        x = x.squeeze()
+        x = self.FC(x)
+        return x
 
-def res_net_model(n_strat_classes, n_classes=7, num_res_net_blocks=2, use_stratification=False):
+    @property
+    def is_cuda(self):
+        """
+        Check if model parameters are allocated on the GPU.
+        """
+        return next(self.parameters()).is_cuda
 
-    inputs1 = keras.Input(shape=(450, 600, 3))
-    inputs2 = keras.Input(shape=(n_strat_classes,))
+    def save(self, path):
+        """
+        Save model with its parameters to the given path. Conventionally the
+        path should end with "*.model".
 
-    if use_stratification:
-        x = StratBN()([inputs1, inputs2])
-    else:
-        x = layers.BatchNormalization()(inputs1)
-
-    x = layers.Conv2D(32, 3, activation='relu')(x)
-    x = layers.Conv2D(64, 3, activation='relu')(x)
-    x = layers.MaxPooling2D(3)(x)
-    for _ in range(num_res_net_blocks):
-        x = res_net_block(x, 64, 3)
-    x = layers.Conv2D(64, 3, activation='relu')(x)
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(256, activation='relu')(x)
-    x = layers.Dropout(0.5)(x)
-    outputs = layers.Dense(n_classes)(x)  # no softmax
-
-    return keras.Model([inputs1, inputs2], outputs)
+        Inputs:
+        - path: path string
+        """
+        print('Saving model... %s' % path)
+        torch.save(self, path)

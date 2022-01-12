@@ -50,7 +50,8 @@ class DataGenerator:
                 for key, value in data_dict.items():
                     if key not in batch_dict:
                         batch_dict[key] = []
-                    batch_dict[key].append(value)
+                    for val in value:
+                        batch_dict[key].append(val)
             return batch_dict
         
         if self.shuffle:
@@ -60,7 +61,9 @@ class DataGenerator:
 
         batch = []
         for i, index in enumerate(index_iterator):  # iterate over indices using the iterator
+            #print(i, index)
             batch.append(self.dataset[index])
+            #print(batch[0])
             if len(batch) == self.batch_size:
                 yield batch_to_numpy(combine_batch_dicts(batch))  # use yield keyword to define a iterable generator
                 batch = []

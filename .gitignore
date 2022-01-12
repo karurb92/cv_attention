@@ -131,4 +131,4 @@ dmypy.json
 # Project specific stuff
 data/
 local_work/
-playground.ipynb
+trained_models/

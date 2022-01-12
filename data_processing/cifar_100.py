@@ -86,6 +86,13 @@ class Cifar100():
 
         data_dict = {}
 
+        data_dict['image'] = self.images[index]
+        data_dict['label'] = self.labels[index]
+
+        for transform in self.transform:
+            data_dict = transform(data_dict)
+        
+        '''
         if self.transform is None:
             data_dict['image'] = self.images[index]
         else:
@@ -93,5 +100,6 @@ class Cifar100():
                 data_dict['image'] = transform(self.images[index])
         
         data_dict['label'] = self.labels[index]
+        '''
 
         return data_dict
