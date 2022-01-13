@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
-class ResNet(nn.Module):
+class BaselineResNet(nn.Module):
 
     def __init__(self, num_classes=20, hparams=None):
         super().__init__()
@@ -20,14 +20,13 @@ class ResNet(nn.Module):
         self.num_classes = num_classes
         
         self.feature_extractor = nn.Sequential(*(list(models.resnet18(pretrained=True).children())[:-2]))
+        self.AdAvgP = nn.Sequential(nn.AdaptiveAvgPool2d(output_size=(1, 1)))
+        self.FC = nn.Sequential(nn.Linear(in_features=512, out_features=self.num_classes, bias=True))
 
         '''
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
         ''' 
-        self.AdAvgP = nn.Sequential(nn.AdaptiveAvgPool2d(output_size=(1, 1)))
-        self.FC = nn.Sequential(nn.Linear(in_features=512, out_features=self.num_classes, bias=True))
-
 
     def forward(self, x):
         """
