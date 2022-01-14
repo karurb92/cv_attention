@@ -13,20 +13,20 @@ import torchvision.models as models
 
 class BaselineResNet(nn.Module):
 
-    def __init__(self, num_classes=20, hparams=None):
+    def __init__(self, num_classes=20, hparams=None, freeze=False):
         super().__init__()
 
         self.hparams=hparams
         self.num_classes = num_classes
+        self.freeze = freeze
         
         self.feature_extractor = nn.Sequential(*(list(models.resnet18(pretrained=True).children())[:-2]))
         self.AdAvgP = nn.Sequential(nn.AdaptiveAvgPool2d(output_size=(1, 1)))
         self.FC = nn.Sequential(nn.Linear(in_features=512, out_features=self.num_classes, bias=True))
 
-        '''
-        for param in self.feature_extractor.parameters():
-            param.requires_grad = False
-        ''' 
+        if freeze:
+            for param in self.feature_extractor.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         """

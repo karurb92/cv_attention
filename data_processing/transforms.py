@@ -19,11 +19,6 @@ import numpy as np
 import torch
 import cv2
 
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-#import tensorflow_addons as tfa
-
 class PassThroughCNN:
 
     def __init__(self, model):

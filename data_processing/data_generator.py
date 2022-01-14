@@ -12,6 +12,7 @@ these are just for inspiration
 '''
 
 import numpy as np
+import torch
 
 class DataGenerator:
     """
@@ -38,11 +39,16 @@ class DataGenerator:
         Defines an iterable function that samples batches from the dataset.
         Each batch is a dict containing numpy arrays of length batch_size (except for the last batch if drop_last=True)
         '''
-        def batch_to_numpy(batch):
-            numpy_batch = {}
+        def batch_to_torch(batch):
+            torch_batch = {}
             for key, value in batch.items():
-                numpy_batch[key] = np.array(value)
-            return numpy_batch
+                if key=='image':
+                    torch_batch[key] = torch.tensor(value, dtype=torch.float32)
+                elif key=='label':
+                    torch_batch[key] = torch.tensor(value, dtype=torch.long)
+                else:
+                    torch_batch[key] = torch.tensor(value)
+            return torch_batch
         
         def combine_batch_dicts(batch):
             batch_dict = {}
@@ -65,11 +71,11 @@ class DataGenerator:
             batch.append(self.dataset[index])
             #print(batch[0])
             if len(batch) == self.batch_size:
-                yield batch_to_numpy(combine_batch_dicts(batch))  # use yield keyword to define a iterable generator
+                yield batch_to_torch(combine_batch_dicts(batch))  # use yield keyword to define a iterable generator
                 batch = []
             
             if i + 1 == len(self.dataset) and not self.drop_last:
-                yield batch_to_numpy(combine_batch_dicts(batch))  # use yield keyword to define a iterable generator
+                yield batch_to_torch(combine_batch_dicts(batch))  # use yield keyword to define a iterable generator
                 batch = []
 
 
