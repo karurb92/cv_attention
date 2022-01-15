@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 class BaselineSolver(object):
 
@@ -29,9 +30,13 @@ class BaselineSolver(object):
 
     def _step(self, images, labels, validation):
         self.optimizer.zero_grad()
-        predictions = self.model.forward(images)
-        loss = self.loss_func(predictions, labels)
-        if not validation:
+        if validation:
+            with torch.no_grad():
+                predictions = self.model.forward(images)
+            loss = self.loss_func(predictions, labels)
+        else:
+            predictions = self.model.forward(images)
+            loss = self.loss_func(predictions, labels)
             loss.backward()
             self.optimizer.step()
         return loss
@@ -77,8 +82,8 @@ class BaselineSolver(object):
                 if not batch: break
 
                 images, labels = batch['image'], batch['label']
-                images = torch.tensor(images, dtype=torch.float32)
-                labels = torch.tensor(labels, dtype=torch.long)
+                images = images.to(self.device)
+                labels = labels.to(self.device)
 
                 # Compute Loss - no param update at validation time!
                 val_loss = self._step(images, labels, validation=True)
@@ -88,6 +93,15 @@ class BaselineSolver(object):
                 
             val_epoch_loss /= len(self.val_dataloader)
             self.val_loss_history.append(val_epoch_loss)
+
+
+            ######################### Report on accuracies #########################
+            train_epoch_acc = self.get_dataset_accuracy(self.train_dataloader)
+            val_epoch_acc = self.get_dataset_accuracy(self.val_dataloader)
+            self.train_acc_history.append(train_epoch_acc)
+            self.val_acc_history.append(val_epoch_acc)
+            print(f'Training accuracy after epoch {epoch+1}: {train_epoch_acc}')
+            print(f'Validation accuracy after epoch {epoch+1}: {val_epoch_acc}')
 
 
             ######################### Keep track of the best model #########################
@@ -110,3 +124,21 @@ class BaselineSolver(object):
             self.current_patience = 0
         else:
             self.current_patience += 1
+
+    def get_dataset_accuracy(self, loader):
+        correct = 0
+        total = 0
+        for batch in loader:
+            if not batch: break
+            images, labels = batch['image'], batch['label']
+            images = images.to(self.device)
+            labels = labels.to(self.device)
+            with torch.no_grad():
+                predictions = self.model.forward(images)
+            label_pred = np.argmax(predictions, axis=1)
+            correct += sum(label_pred == labels)
+            if labels.shape:
+                total += labels.shape[0]
+            else:
+                total += 1
+        return correct / total
