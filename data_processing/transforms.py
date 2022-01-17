@@ -19,14 +19,16 @@ import numpy as np
 import torch
 import cv2
 
+
 class PassThroughCNN:
 
     def __init__(self, model):
         self.model = model
 
-    def __call__(self, img_dict, model):
+    def __call__(self, img_dict):
         #img_dict['image'] is of [4,3,224,224]
-        images = self.model.forward(img_dict['image'])
+        image_before_cnn = torch.tensor(img_dict['image'], dtype=torch.float32)
+        images = self.model.forward(image_before_cnn)
         #images is of [4,512,7,7]
         img_dict['image'] = images
         return img_dict
