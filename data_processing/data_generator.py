@@ -19,7 +19,7 @@ class DataGenerator:
     Datagenerator Class
     Defines an iterable batch-sampler over a given dataset
     """
-    def __init__(self, dataset, batch_size=1, shuffle=True, drop_last=False):
+    def __init__(self, dataset, batch_size=1, shuffle=True, drop_last=False, flatten_batch=True):
         """
         :param dataset: dataset from which to load the data
         :param batch_size: how many samples per batch to load
@@ -33,6 +33,7 @@ class DataGenerator:
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.drop_last = drop_last
+        self.flatten_batch = flatten_batch
 
     def __iter__(self):
         '''
@@ -43,7 +44,10 @@ class DataGenerator:
             torch_batch = {}
             for key, value in batch.items():
                 if key=='image':
-                    torch_batch[key] = torch.tensor(value, dtype=torch.float32)
+                    if self.flatten_batch:
+                        torch_batch[key] = torch.tensor(value, dtype=torch.float32)
+                    else:
+                        torch_batch[key] = torch.cat([x.float().unsqueeze(0) for x in value], dim=0).flatten(3,4).flatten(2,3)
                 elif key=='label':
                     torch_batch[key] = torch.tensor(value, dtype=torch.long)
                 else:
@@ -51,13 +55,20 @@ class DataGenerator:
             return torch_batch
         
         def combine_batch_dicts(batch):
+            #(4,512,7,7)
             batch_dict = {}
             for data_dict in batch:
                 for key, value in data_dict.items():
                     if key not in batch_dict:
                         batch_dict[key] = []
-                    for val in value:
-                        batch_dict[key].append(val)
+                    if self.flatten_batch:
+                        for val in value:
+                            batch_dict[key].append(val)
+                    else:
+                        if key=='image':
+                            batch_dict[key].append(value)
+                        elif key=='label':
+                            batch_dict[key].append(value[0]) 
             return batch_dict
         
         if self.shuffle:
