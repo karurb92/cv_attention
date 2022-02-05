@@ -36,7 +36,7 @@ class BaselineResNet(nn.Module):
         Inputs:
         - x: PyTorch input Variable
         """
-        
+
         x = self.feature_extractor(x)
         x = self.AdAvgP(x)
         x = x.squeeze()
