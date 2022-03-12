@@ -52,12 +52,6 @@ class VisionTransformerEmbedded(nn.Module):
             for i in range(self.num_patches)]
         self.flattened_dim = 25088 #512x7x7
 
-        # single or double linear layer between embeddings and vit?
-        # is downscaling  from 2k x 2k into 224x224 with the use of convolutions fine?
-        # 'parallelism' - how to optimize forward pass through multiple resnets
-        # remember about changing the loss function if the classification problem is binary
-        #on thursday: write 1) retina dataset class 2) make sure transforms and data generator are working with it 3) set up training procedure on the cluster
-
         # Layers/Networks
         self.input_layer = nn.Linear(self.flattened_dim, embed_dim)#num_channels*(patch_size**2), embed_dim)
         self.transformer = nn.Sequential(*[AttentionBlock(embed_dim, hidden_dim, num_heads, dropout=dropout) for _ in range(num_layers)])

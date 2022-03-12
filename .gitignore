@@ -132,3 +132,5 @@ dmypy.json
 data/
 local_work/
 trained_models/
+saved_models/
+dataset/

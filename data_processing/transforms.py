@@ -79,6 +79,43 @@ class Patches:
         return img_dict
 
 
+class Patches_new:
+
+    def __init__(self, patch_num):
+        self.patch_num = patch_num
+    
+    def __call__(self, img_dict):
+
+        def img_to_patch(x):
+            """
+            Inputs:
+                x - torch.Tensor representing the image of shape [B, C, H, W]
+                patch_size - Number of pixels per dimension of the patches (integer)
+
+            """
+            x = x[None, :]
+            x = torch.tensor(x)
+
+            B, H, W, C = x.shape
+            H_new = H // self.patch_num * self.patch_num
+            W_new = W // self.patch_num * self.patch_num
+            H_pixels = int(H_new / self.patch_num)
+            W_pixels = int(W_new / self.patch_num)
+            x = x[:, :H_new, :W_new, :]
+            #x = x.reshape(B, H_new//H_pixels, H_pixels, W_new//W_pixels, W_pixels, C)
+            x = x.reshape(B, self.patch_num, H_pixels, self.patch_num, W_pixels, C)
+            x = x.permute(0, 1, 3, 5, 2, 4) # [B, H', W', C, p_H, p_W]
+            x = x.flatten(1,2)              # [B, H'*W', C, p_H, p_W]
+            x = x.squeeze()
+            return x
+
+        image = img_to_patch(img_dict['image']).numpy()
+        label = np.array([img_dict['label'] for i in image])
+        img_dict['image'], img_dict['label'] = image, label
+        return img_dict
+
+
+
 class RescaleTransform:
     """Transform class to rescale images to a given range"""
     def __init__(self, out_range=(0, 1), in_range=(0, 255)):
