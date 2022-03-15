@@ -47,7 +47,7 @@ class DataGenerator:
                     if self.flatten_batch:
                         torch_batch[key] = torch.tensor(value, dtype=torch.float32)
                     else:
-                        torch_batch[key] = torch.cat([x.float().unsqueeze(0) for x in value], dim=0).flatten(3,4).flatten(2,3)
+                        torch_batch[key] = torch.cat([x.float().unsqueeze(0) for x in value_test], dim=0).flatten(3,4).flatten(2,3)
                 elif key=='label':
                     torch_batch[key] = torch.tensor(value, dtype=torch.long)
                 else:
