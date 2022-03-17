@@ -44,16 +44,16 @@ class VisionTransformerEmbedded(nn.Module):
         self.num_classes = num_classes
         self.patch_size = patch_size
         self.num_patches = num_patches
-        
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.Resnets = [nn.Sequential(
             # add 1-2 convolutions here for potential downscaling of the patch into 224x224
-            *(list(models.resnet18(pretrained=False).children())[:-2])
+            *(nn.ModuleList(models.resnet18(pretrained=False).children())[:-2].to(self.device))
             )\
             for i in range(self.num_patches)]
         self.flattened_dim = 25088 #512x7x7
 
         # Layers/Networks
-        self.input_layer = nn.Linear(self.flattened_dim, embed_dim)#num_channels*(patch_size**2), embed_dim)
+        self.input_layer = nn.Linear(self.flattened_dim, embed_dim).to(self.device)#num_channels*(patch_size**2), embed_dim)
         self.transformer = nn.Sequential(*[AttentionBlock(embed_dim, hidden_dim, num_heads, dropout=dropout) for _ in range(num_layers)])
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(embed_dim),
@@ -62,8 +62,8 @@ class VisionTransformerEmbedded(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # Parameters/Embeddings
-        self.cls_token = nn.Parameter(torch.randn(1,1,embed_dim))
-        self.pos_embedding = nn.Parameter(torch.randn(1,1+num_patches,embed_dim))
+        self.cls_token = nn.Parameter(torch.randn(1,1,embed_dim).to(self.device))
+        self.pos_embedding = nn.Parameter(torch.randn(1,1+num_patches,embed_dim).to(self.device))
 
 
 
@@ -77,7 +77,7 @@ class VisionTransformerEmbedded(nn.Module):
         """
         #input is of (batch_size, num_patches, 3, patch_size, patch_size) dimensionality 
         x = x.permute(1,0,2,3,4)
-        tmp = torch.zeros(self.num_patches, self.hparams['batch_size'], 512, 7, 7)
+        tmp = torch.zeros(self.num_patches, self.hparams['batch_size'], 512, 7, 7).to(self.device)
         for i in range(self.num_patches):
             #x[i] is of (8,3,224,224)
             tmp[i] = self.Resnets[i](x[i])
