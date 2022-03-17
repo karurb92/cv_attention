@@ -136,6 +136,7 @@ class RescaleTransform:
            - to (self.min, self.max)
         '''
         images = img_dict['image']
+        #image.shape is (2056, 2124, 3) actual image size
         images -= self._data_min
         images /= (self._data_max - self._data_min) / (self.max - self.min)
         images += self.min
@@ -151,6 +152,7 @@ class ReshapeToTensor:
 
     def __call__(self, img_dict):
         image = img_dict['image']
+        #image.shape is (3072,) for Cifar100
         image = image.reshape(3,32,32).transpose(1,2,0)
         img_dict['image'] = image
         return img_dict

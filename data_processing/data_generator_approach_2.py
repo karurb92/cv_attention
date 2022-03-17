@@ -34,7 +34,7 @@ class DataGeneratorA2:
                     if self.flatten_batch:
                         torch_batch[key] = torch.tensor(value, dtype=torch.float32)
                     else:
-                        torch_batch[key] = torch.cat([x.float().unsqueeze(0) for x in value_tensor], dim=0).flatten(3,4).flatten(2,3)
+                        torch_batch[key] = torch.cat([x.float().unsqueeze(0) for x in value], dim=0).flatten(3,4).flatten(2,3)
                 elif key=='label':
                     torch_batch[key] = torch.tensor(value, dtype=torch.long)
                 else:
@@ -56,6 +56,7 @@ class DataGeneratorA2:
                             batch_dict[key].append(value)
                         elif key=='label':
                             batch_dict[key].append(value[0]) 
+            print(np.array(batch_dict['image']).shape) 
             return batch_dict
         
         if self.shuffle:

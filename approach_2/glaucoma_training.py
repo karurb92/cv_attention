@@ -15,13 +15,14 @@ import numpy as np
 
 class GlaucomaSolver(object):
 
-    def __init__(self, model, train_dataloader, val_dataloader, device, patience):
+    def __init__(self, model, train_dataloader, val_dataloader, device, patience, approach=2):
 
         self.device = device
         self.model = model.to(self.device)
         self.train_dataloader = train_dataloader
         self.val_dataloader = val_dataloader
         self.patience = patience
+        self.approach = approach
         
         self.batch_size = model.hparams['batch_size']
         self.learning_rate = model.hparams['learning_rate']
@@ -46,10 +47,18 @@ class GlaucomaSolver(object):
         if validation:
             with torch.no_grad():
                 predictions = self.model.forward(images)
-            loss = self.loss_func(predictions[:, 1], labels[:, 0].float())
+            if self.approach==1:
+                actual = labels.float()
+            else:
+                actual = labels[:, 0].float()
+            loss = self.loss_func(predictions[:, 1], actual)
         else:
             predictions = self.model.forward(images)
-            loss = self.loss_func(predictions[:, 1], labels[:, 0].float())
+            if self.approach==1:
+                actual = labels.float()
+            else:
+                actual = labels[:, 0].float()
+            loss = self.loss_func(predictions[:, 1], actual)
             loss.backward()
             self.optimizer.step()
         return loss
@@ -71,6 +80,7 @@ class GlaucomaSolver(object):
                 images, labels = batch['image'], batch['label']
                 images = images.to(self.device)
                 labels = labels.to(self.device)
+                #print([images.shape, labels.shape])
         
                 train_loss = self._step(images, labels, validation=False)
 
@@ -152,9 +162,11 @@ class GlaucomaSolver(object):
                 predictions = self.model.forward(images)
             #label_pred = np.argmax(predictions, axis=1)
             label_pred = torch.argmax(predictions, dim=1)
-            #print(label_pred)
-            #print(torch.argmax(predictions, dim=1))
-            correct += sum(label_pred == labels[:, 0])
+            if self.approach==1:
+                actual = labels
+            else:
+                actual = labels[:, 0]
+            correct += sum(label_pred == actual)
             if labels.shape:
                 total += labels.shape[0]
             else:
