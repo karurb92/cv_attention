@@ -135,7 +135,8 @@ class BaselineSolver(object):
             labels = labels.to(self.device)
             with torch.no_grad():
                 predictions = self.model.forward(images)
-            label_pred = np.argmax(predictions, axis=1)
+            #label_pred = np.argmax(predictions, axis=1)
+            label_pred = torch.argmax(predictions, dim=1)
             correct += sum(label_pred == labels)
             if labels.shape:
                 total += labels.shape[0]

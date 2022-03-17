@@ -37,7 +37,7 @@ class Cifar100():
         :param directory: root directory of the general data folder
         :returns: dict that maps label to a class
         """
-        meta_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\meta')
+        meta_file = Cifar100._unpickle(f'{directory}/cifar-100-python/meta')
         classes = {idx : label for idx, label in enumerate(meta_file['coarse_label_names'])}
         return classes
 
@@ -52,7 +52,7 @@ class Cifar100():
         """
 
         if purpose=='train':
-            data_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\train')
+            data_file = Cifar100._unpickle(f'{directory}/cifar-100-python/train')
             n = len(data_file['data'])
             random.seed(seed)
             random_mask = random.sample([i for i in range(n)], int(split*n))
@@ -60,7 +60,7 @@ class Cifar100():
             labels = np.array(data_file['coarse_labels'])[random_mask]
             return images, labels
         elif purpose=='val':
-            data_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\train')
+            data_file = Cifar100._unpickle(f'{directory}/cifar-100-python/train')
             n = len(data_file['data'])
             random.seed(seed)
             random_mask = random.sample([i for i in range(n)], int(split*n))
@@ -68,7 +68,7 @@ class Cifar100():
             labels = np.delete(np.array(data_file['coarse_labels']), random_mask, axis=0)
             return images, labels
         elif purpose=='test':
-            data_file = Cifar100._unpickle(f'{directory}\\cifar-100-python\\test')
+            data_file = Cifar100._unpickle(f'{directory}/cifar-100-python/test')
             return np.array(data_file['data']).astype(float), data_file['coarse_labels']
 
 

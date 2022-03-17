@@ -27,6 +27,7 @@ if __name__ == "__main__":
     repo_root = os.path.abspath(os.getcwd())
     model_root = os.path.join(repo_root, "trained_models/baselinemodel_batch1_lr0.001_epochs2_freezeFalse.model")
     data_root = os.path.join(repo_root, "data")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     seed = 69
     split = 0.7
     patch_size = 16
@@ -34,7 +35,7 @@ if __name__ == "__main__":
     num_classes = 20
 
     cnn_model = torch.load(model_root)
-    cnn_model = nn.Sequential(*(list(cnn_model.children())[:-2]))
+    cnn_model = nn.Sequential(*(nn.ModuleList(cnn_model.children())[:-2]).to(device))
 
     transforms = [RescaleTransform(), ReshapeToTensor(), Patches(patch_size=patch_size), Resize(), PassThroughCNN(cnn_model)]
     train = Cifar100(root=data_root, purpose='train', seed=seed, split=0.01, transform=transforms)
@@ -60,9 +61,6 @@ if __name__ == "__main__":
                                     'hparams': hparams
                                 })
 
-
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     patience = 3
 
 
