@@ -1,7 +1,5 @@
-from tkinter import Y
 import torch
 import torch.nn as nn
-import torchvision.models as models
 
 
 class AttentionBlock(nn.Module):
@@ -33,27 +31,32 @@ class AttentionBlock(nn.Module):
         x = x + self.attn(inp_x, inp_x, inp_x)[0]
         x = x + self.linear(self.layer_norm_2(x))
         return x
+        
 
-      
-class VisionTransformerEmbedded(nn.Module):
+class VisionTransformer(nn.Module):
 
-    def __init__(self, hparams, embed_dim, hidden_dim, num_heads, num_layers, num_classes, patch_size, num_patches, dropout=0.0):
+    def __init__(self, hparams, embed_dim, hidden_dim, flattened_dim, num_heads, num_layers, num_classes, patch_size, num_patches, dropout=0.0):
+        """
+        Inputs:
+            embed_dim - Dimensionality of the input feature vectors to the Transformer
+            hidden_dim - Dimensionality of the hidden layer in the feed-forward networks
+                         within the Transformer
+            num_channels - Number of channels of the input (3 for RGB)
+            num_heads - Number of heads to use in the Multi-Head Attention block
+            num_layers - Number of layers to use in the Transformer
+            num_classes - Number of classes to predict
+            patch_size - Number of pixels that the patches have per dimension
+            num_patches - Maximum number of patches an image can have
+            dropout - Amount of dropout to apply in the feed-forward network and
+                      on the input encoding
+        """
         super().__init__()
 
-        self.hparams=hparams
-        self.num_classes = num_classes
+        self.hparams = hparams
         self.patch_size = patch_size
-        self.num_patches = num_patches
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.Resnets = [nn.Sequential(
-            # add 1-2 convolutions here for potential downscaling of the patch into 224x224
-            *(nn.ModuleList(models.resnet18(pretrained=False).children())[:-2].to(self.device))
-            )\
-            for i in range(self.num_patches)]
-        self.flattened_dim = 25088 #512x7x7,     64x4x4 
 
         # Layers/Networks
-        self.input_layer = nn.Linear(self.flattened_dim, embed_dim).to(self.device)#num_channels*(patch_size**2), embed_dim)
+        self.input_layer = nn.Linear(flattened_dim, embed_dim)#num_channels*(patch_size**2), embed_dim)
         self.transformer = nn.Sequential(*[AttentionBlock(embed_dim, hidden_dim, num_heads, dropout=dropout) for _ in range(num_layers)])
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(embed_dim),
@@ -62,32 +65,14 @@ class VisionTransformerEmbedded(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # Parameters/Embeddings
-        self.cls_token = nn.Parameter(torch.randn(1,1,embed_dim).to(self.device))
-        self.pos_embedding = nn.Parameter(torch.randn(1,1+num_patches,embed_dim).to(self.device))
-
-
+        self.cls_token = nn.Parameter(torch.randn(1,1,embed_dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1,1+num_patches,embed_dim))
 
     def forward(self, x):
-        """
-        Forward pass of the convolutional neural network. Should not be called
-        manually but by calling a model instance directly.
+        # Preprocess input
+        #print(x.shape)
+        #x = img_to_patch(x, self.patch_size)
 
-        Inputs:
-        - x: PyTorch input Variable
-        """
-        #input is of (batch_size, num_patches, 3, patch_size, patch_size) dimensionality 
-        x = x.permute(1,0,2,3,4)
-        tmp = torch.zeros(self.num_patches, self.hparams['batch_size'], 512, 7, 7).to(self.device)
-        for i in range(self.num_patches):
-            #x[i] is of (8,3,224,224)
-            tmp[i] = self.Resnets[i](x[i])
-            #tmp[i] is of (8,512,7,7)
-        x = tmp.permute(1,0,2,3,4)
-        #x is of (8,4,512,7,7)
-        x = x.flatten(2,4)
-        #x is of (8, 4, 25088)
-
-        ###################### ViT from here
         B, T, _ = x.shape
         x = self.input_layer(x)
 
@@ -105,7 +90,6 @@ class VisionTransformerEmbedded(nn.Module):
         cls = x[0]
         out = self.mlp_head(cls)
         return out
-
 
     @property
     def is_cuda(self):

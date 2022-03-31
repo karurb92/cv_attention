@@ -17,7 +17,7 @@ again, this is heavily inspired by I2DL, exercise 1
 
 import numpy as np
 import torch
-import cv2
+import torch.nn.functional as F
 
 
 class PassThroughCNN:
@@ -36,17 +36,13 @@ class PassThroughCNN:
 
 class Resize:
 
-    def __init__(self, new_size=(224,224), interpolation=cv2.INTER_CUBIC):
+    def __init__(self, new_size, interpolation='bicubic'):
         self.new_size = new_size
         self.interpolation = interpolation
     
     def __call__(self, img_dict):
-        resized_imgs = []
-        for img in img_dict['image']:
-            resized_img = cv2.resize(np.transpose(img, (1, 2, 0)), dsize=self.new_size, interpolation=self.interpolation)
-            resized_imgs.append(resized_img)
-        img_dict['image'] = np.transpose(np.array(resized_imgs), (0, 3, 1, 2))
-
+        resized_img = F.interpolate(img_dict['image'], size=self.new_size, mode=self.interpolation)
+        img_dict['image'] = resized_img
         return img_dict
 
 

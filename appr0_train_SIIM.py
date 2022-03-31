@@ -1,18 +1,17 @@
 import os
 
-## PyTorch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as data
 import torch.optim as optim
 
-
-from data_processing.cifar_100 import Cifar100
-from data_processing.data_generator import DataGenerator
+from datasets.siim import SIIM
 from data_processing.transforms import *
-from approach_1.models import VisionTransformer
-from approach_1.attention_training import AttentionSolver
+
+from appr0_VIT.model import VisionTransformer
+from appr0_VIT.solver import Solver
+from appr0_VIT.data_generator import DataGenerator
 
 
 if __name__ == "__main__":
@@ -64,7 +63,7 @@ if __name__ == "__main__":
     patience = 3
 
 
-    solver = AttentionSolver(
+    solver = Solver(
         model=model,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
