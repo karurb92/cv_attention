@@ -20,19 +20,7 @@ import torch
 import torch.nn.functional as F
 
 
-class PassThroughCNN:
-
-    def __init__(self, model):
-        self.model = model
-
-    def __call__(self, img_dict):
-        #img_dict['image'] is of [4,3,224,224]
-        image_before_cnn = torch.tensor(img_dict['image'], dtype=torch.float32)
-        images = self.model.forward(image_before_cnn)
-        #images is of [4,512,7,7]
-        img_dict['image'] = images
-        return img_dict
-
+### MAYBE APPLY TRANSFORMS ONCE AND SAVE THE DATA LOCALLY?
 
 class Resize:
 
@@ -48,8 +36,8 @@ class Resize:
 
 class Patches:
 
-    def __init__(self, patch_size):
-        self.patch_size = patch_size
+    def __init__(self, patch_num):
+        self.patch_num = patch_num
     
     def __call__(self, img_dict):
 
@@ -60,20 +48,80 @@ class Patches:
                 patch_size - Number of pixels per dimension of the patches (integer)
 
             """
-            x = x[None, :]
-            x = torch.tensor(x)
-            B, H, W, C = x.shape
-            x = x.reshape(B, H//self.patch_size, self.patch_size, W//self.patch_size, self.patch_size, C)
-            x = x.permute(0, 1, 3, 5, 2, 4) # [B, H', W', C, p_H, p_W]
+            B, C, H, W = x.shape
+            H_new = H // self.patch_num * self.patch_num
+            W_new = W // self.patch_num * self.patch_num
+            H_pixels = int(H_new / self.patch_num)
+            W_pixels = int(W_new / self.patch_num)
+            x = x[:, :, :H_new, :W_new]
+            #x = x.reshape(B, H_new//H_pixels, H_pixels, W_new//W_pixels, W_pixels, C)
+            x = x.reshape(B, C, self.patch_num, H_pixels, self.patch_num, W_pixels)
+            x = x.permute(0, 2, 4, 1, 3, 5) # [B, H', W', C, p_H, p_W]
             x = x.flatten(1,2)              # [B, H'*W', C, p_H, p_W]
-            x = x.squeeze()
             return x
 
-        image = img_to_patch(img_dict['image']).numpy()
-        label = np.array([img_dict['label'] for i in image])
+        image = img_to_patch(img_dict['image'])
+        label = img_dict['label'].unsqueeze(1).expand(-1, image.shape[1])
+        #full_tensor1 = torch.full((), img_dict['label'])
         img_dict['image'], img_dict['label'] = image, label
+
         return img_dict
 
+
+class RescaleTransform:
+    """Transform class to rescale images to a given range"""
+    def __init__(self, out_range=(0, 1), in_range=(0, 255)):
+        """
+        :param out_range: Value range to which images should be rescaled to
+        :param in_range: Old value range of the images
+            e.g. (0, 255) for images with raw pixel values
+        """
+        self.min = out_range[0]
+        self.max = out_range[1]
+        self._data_min = in_range[0]
+        self._data_max = in_range[1]
+
+    def __call__(self, img_dict):
+        '''
+        Rescales given image
+           - from (self._data_min, self._data_max)
+           - to (self.min, self.max)
+        '''
+        images = img_dict['image']
+        #image.shape is (2056, 2124, 3) actual image size
+        images -= self._data_min
+        images /= (self._data_max - self._data_min) / (self.max - self.min)
+        images += self.min
+        img_dict['image'] = images
+
+        return img_dict
+
+####################################################
+
+class PassThroughCNN:
+
+    def __init__(self, model):
+        self.model = model
+
+    def __call__(self, img_dict):
+        #img_dict['image'] is of [4,3,224,224]
+        image_before_cnn = torch.tensor(img_dict['image'], dtype=torch.float32)
+        images = self.model.forward(image_before_cnn)
+        #images is of [4,512,7,7]
+        img_dict['image'] = images
+        return img_dict
+
+class ReshapeToTensor:
+    """Transform class to reshape images to a 32x32x3"""
+    def __init__(self):
+        pass
+
+    def __call__(self, img_dict):
+        image = img_dict['image']
+        #image.shape is (3072,) for Cifar100
+        image = image.reshape(3,32,32).transpose(1,2,0)
+        img_dict['image'] = image
+        return img_dict
 
 class Patches_new:
 
@@ -109,49 +157,4 @@ class Patches_new:
         label = np.array([img_dict['label'] for i in image])
         img_dict['image'], img_dict['label'] = image, label
         return img_dict
-
-
-
-class RescaleTransform:
-    """Transform class to rescale images to a given range"""
-    def __init__(self, out_range=(0, 1), in_range=(0, 255)):
-        """
-        :param out_range: Value range to which images should be rescaled to
-        :param in_range: Old value range of the images
-            e.g. (0, 255) for images with raw pixel values
-        """
-        self.min = out_range[0]
-        self.max = out_range[1]
-        self._data_min = in_range[0]
-        self._data_max = in_range[1]
-
-    def __call__(self, img_dict):
-        '''
-        Rescales given image
-           - from (self._data_min, self._data_max)
-           - to (self.min, self.max)
-        '''
-        images = img_dict['image']
-        #image.shape is (2056, 2124, 3) actual image size
-        images -= self._data_min
-        images /= (self._data_max - self._data_min) / (self.max - self.min)
-        images += self.min
-        img_dict['image'] = images
-
-        return img_dict
-
-
-class ReshapeToTensor:
-    """Transform class to reshape images to a 32x32x3"""
-    def __init__(self):
-        pass
-
-    def __call__(self, img_dict):
-        image = img_dict['image']
-        #image.shape is (3072,) for Cifar100
-        image = image.reshape(3,32,32).transpose(1,2,0)
-        img_dict['image'] = image
-        return img_dict
-
-
 

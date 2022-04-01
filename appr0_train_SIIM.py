@@ -36,7 +36,8 @@ if __name__ == "__main__":
     cnn_model = torch.load(model_root)
     cnn_model = nn.Sequential(*(nn.ModuleList(cnn_model.children())[:-2]).to(device))
 
-    transforms = [RescaleTransform(), ReshapeToTensor(), Patches(patch_size=patch_size), Resize(), PassThroughCNN(cnn_model)]
+    #remember to define size for Resize() transform
+    transforms = [RescaleTransform(), Patches(patch_size=patch_size), Resize()]
     train = Cifar100(root=data_root, purpose='train', seed=seed, split=0.01, transform=transforms)
     val = Cifar100(root=data_root, purpose='val', seed=seed, split=0.999, transform=transforms)
 
