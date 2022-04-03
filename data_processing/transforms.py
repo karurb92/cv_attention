@@ -24,7 +24,7 @@ import torch.nn.functional as F
 
 class Resize:
 
-    def __init__(self, new_size, interpolation='bicubic'):
+    def __init__(self, new_size, interpolation='trilinear'):
         self.new_size = new_size
         self.interpolation = interpolation
     

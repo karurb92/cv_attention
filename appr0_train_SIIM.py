@@ -24,8 +24,8 @@ if __name__ == "__main__":
     }
 
     repo_root = os.path.abspath(os.getcwd())
-    model_root = os.path.join(repo_root, "trained_models/baselinemodel_batch1_lr0.001_epochs2_freezeFalse.model")
-    data_root = os.path.join(repo_root, "data")
+    model_root = os.path.join(repo_root, "trained_models")
+    data_root = os.path.join(repo_root, "data/siim")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     seed = 69
     split = 0.7
@@ -33,13 +33,12 @@ if __name__ == "__main__":
     num_patches = int((32/patch_size)**2)
     num_classes = 20
 
-    cnn_model = torch.load(model_root)
-    cnn_model = nn.Sequential(*(nn.ModuleList(cnn_model.children())[:-2]).to(device))
-
     #remember to define size for Resize() transform
-    transforms = [RescaleTransform(), Patches(patch_size=patch_size), Resize()]
-    train = Cifar100(root=data_root, purpose='train', seed=seed, split=0.01, transform=transforms)
-    val = Cifar100(root=data_root, purpose='val', seed=seed, split=0.999, transform=transforms)
+    transforms = [Patches(patch_num=patch_num), Resize()]
+
+
+    train = Cifar100(root=data_root, purpose='train', seed=seed, split=split, transform=transforms)
+    val = Cifar100(root=data_root, purpose='val', seed=seed, split=split, transform=transforms)
 
     train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"], flatten_batch=False)
     val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"], flatten_batch=False)

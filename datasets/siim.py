@@ -1,8 +1,7 @@
-#TO BE WRITTEN FROM SCRATCH
-
-#import torch
-#from torchvision import transforms
+import torch
 from PIL import Image
+from torchvision import transforms
+#import torchvision
 import os
 import numpy as np
 import pandas as pd
@@ -10,14 +9,16 @@ import pandas as pd
 class SIIM():
     """Gon Refuge dataset class"""
 
-    def __init__(self, root, purpose, transform=None):
+    def __init__(self, root, purpose, seed, split, transform=None):
         self.root_path = root
         self.purpose = purpose
-        self.images, self.labels = self._make_dataset(directory=self.root_path, purpose=self.purpose)
+        self.seed = seed
+        self.split = split
+        self.images, self.labels = self._make_dataset(directory=self.root_path, purpose=self.purpose, seed=self.seed, split=self.split)
         self.transform = transform
 
     @staticmethod
-    def _make_dataset(directory, purpose):
+    def _make_dataset(directory, purpose, seed, split):
         """
         Create the image dataset by preparing a list of samples
         :param directory: root directory of the dataset
@@ -26,44 +27,19 @@ class SIIM():
             - labels is a list containing one label per image
         """
 
+        data_path = os.path.join(directory, "train.csv")
+        meta_df = pd.read_csv(data_path, sep=',')
+
+        #do we want to apply stratification here?
+        train, val, test = np.split(meta_df.sample(frac=1, random_state=seed), 
+                                        [int(split*meta_df.shape[0]), int(((1.0-split)/2.0+split)*meta_df.shape[0])])
+
         if purpose=='train':
-            train_1_path = os.path.join(directory, "GON Refuge/Downloaded from  GrandChallenge/REFUGE-Training400/Training400/Glaucoma")
-            train_0_path = os.path.join(directory, "GON Refuge/Downloaded from  GrandChallenge/REFUGE-Training400/Training400/Non-Glaucoma")
-            images = []
-            labels = []
-            for file in os.listdir(train_1_path):
-                img = Image.open(os.path.join(train_1_path, file))
-                #convert_tensor = transforms.ToTensor()
-                images.append(np.array(img).astype(float))#convert_tensor(img))
-                labels.append(1)
-            for file in os.listdir(train_0_path):
-                img = Image.open(os.path.join(train_0_path, file))
-                #convert_tensor = transforms.ToTensor()
-                images.append(np.array(img).astype(float))#convert_tensor(img))
-                labels.append(0)
-            return images, labels
+            return train['image_name'].tolist(), train['target'].tolist()
         elif purpose=='val':
-            valid_img_path = os.path.join(directory, "GON Refuge/Downloaded from  GrandChallenge/REFUGE-Validation400/REFUGE-Validation400")
-            valid_lab_path = os.path.join(directory, "GON Refuge/Downloaded from  GrandChallenge/REFUGE-Validation400-GT/Fovea_locations.xlsx")
-            images = []
-            labels = []
-            for file in os.listdir(valid_img_path):
-                img = Image.open(os.path.join(valid_img_path, file))
-                images.append(np.array(img).astype(float))
-            labels_excel = pd.read_excel(valid_lab_path)
-            labels = labels_excel['Glaucoma Label'].to_list()
-            return images, labels
+            return val['image_name'].tolist(), val['target'].tolist()
         elif purpose=='test':
-            test_img_path = os.path.join(directory, "GON Refuge/Downloaded from  GrandChallenge/REFUGE-Test400")
-            test_lab_path = os.path.join(directory, "GON Refuge/Downloaded from  GrandChallenge/REFUGE-Test-GT/Glaucoma_label_and_Fovea_location.xlsx")
-            images = []
-            labels = []
-            for file in os.listdir(test_img_path):
-                img = Image.open(os.path.join(test_img_path, file))
-                images.append(np.array(img).astype(float))
-            labels_excel = pd.read_excel(test_lab_path)
-            labels = labels_excel['Label(Glaucoma=1)'].to_list()
-            return images, labels
+            return test['image_name'].tolist(), test['target'].tolist()
 
 
     def __len__(self):
@@ -78,24 +54,20 @@ class SIIM():
              "label": <label of i-th image>} 
         """
 
-        data_dict = {}
+        img_root = os.path.join(self.root_path, f"jpeg/train/{self.images[index]}.jpg")
+        img = Image.open(img_root)
+        trans = transforms.ToTensor()
+        img = trans(img)
+        #img = torchvision.io.read_image(img_root)
 
-        #this needs to have tensors inside
-        #The input dimensions are interpreted in the form: mini-batch x channels x [optional depth] x [optional height] x width.
-        data_dict['image'] = self.images[index]
-        data_dict['label'] = self.labels[index]
+        data_dict = {
+            'image': img.unsqueeze(0),
+            'label': torch.tensor([self.labels[index]])
+        }
+
+        if self.transform is None: return data_dict
 
         for transform in self.transform:
             data_dict = transform(data_dict)
-        
-        '''
-        if self.transform is None:
-            data_dict['image'] = self.images[index]
-        else:
-            for transform in self.transform:
-                data_dict['image'] = transform(self.images[index])
-        
-        data_dict['label'] = self.labels[index]
-        '''
 
         return data_dict
