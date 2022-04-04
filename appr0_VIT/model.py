@@ -35,7 +35,7 @@ class AttentionBlock(nn.Module):
 
 class VisionTransformer(nn.Module):
 
-    def __init__(self, hparams, embed_dim, hidden_dim, flattened_dim, num_heads, num_layers, num_classes, patch_size, num_patches, dropout=0.0):
+    def __init__(self, hparams, embed_dim, hidden_dim, flattened_dim, num_heads, num_layers, num_classes, num_patches, dropout=0.0):
         """
         Inputs:
             embed_dim - Dimensionality of the input feature vectors to the Transformer
@@ -45,7 +45,6 @@ class VisionTransformer(nn.Module):
             num_heads - Number of heads to use in the Multi-Head Attention block
             num_layers - Number of layers to use in the Transformer
             num_classes - Number of classes to predict
-            patch_size - Number of pixels that the patches have per dimension
             num_patches - Maximum number of patches an image can have
             dropout - Amount of dropout to apply in the feed-forward network and
                       on the input encoding

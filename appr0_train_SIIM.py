@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as data
 import torch.optim as optim
+from functools import reduce
 
 from datasets.siim import SIIM
 from data_processing.transforms import *
@@ -19,31 +20,29 @@ if __name__ == "__main__":
         'batch_size': 8,
         'learning_rate': 1e-3,
         'epochs': 2,
-        'loss_func': torch.nn.CrossEntropyLoss(),
-        'optimizer': optim.AdamW
+        'loss_func': torch.nn.BCEWithLogitsLoss(),
+        'optimizer': optim.AdamW,
+        'patch_num': 8,
+        'new_size': (3, 400, 500)
     }
 
     repo_root = os.path.abspath(os.getcwd())
     model_root = os.path.join(repo_root, "trained_models")
     data_root = os.path.join(repo_root, "data/siim")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    seed = 69
+    seed = 42
     split = 0.7
-    patch_size = 16
-    num_patches = int((32/patch_size)**2)
-    num_classes = 20
+    num_classes = 2
 
-    #remember to define size for Resize() transform
-    transforms = [Patches(patch_num=patch_num), Resize()]
+    transforms = [Patches(patch_num=hparams['patch_num']), Resize(new_size=hparams['new_size'])]
 
+    train = SIIM(root=data_root, purpose='train', seed=seed, split=split, transform=transforms)
+    val = SIIM(root=data_root, purpose='val', seed=seed, split=split, transform=transforms)
 
-    train = Cifar100(root=data_root, purpose='train', seed=seed, split=split, transform=transforms)
-    val = Cifar100(root=data_root, purpose='val', seed=seed, split=split, transform=transforms)
+    train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"])
+    val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"])
 
-    train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"], flatten_batch=False)
-    val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"], flatten_batch=False)
-
-    flattened_dim = train[0]['image'].flatten(2,3).flatten(1,2).shape[1]
+    flattened_dim = reduce((lambda x, y: x * y), hparams['new_size'])
 
     model = VisionTransformer(**{
                                     'embed_dim': 256,
@@ -52,16 +51,14 @@ if __name__ == "__main__":
                                     #'num_layers': 6,
                                     'num_heads': 4,
                                     'num_layers': 2,
-                                    'patch_size': patch_size,
                                     'flattened_dim': flattened_dim,
-                                    'num_patches': num_patches,
+                                    'num_patches': hparams['patch_num']**2,
                                     'num_classes': num_classes,
                                     'dropout': 0.2,
                                     'hparams': hparams
                                 })
 
     patience = 3
-
 
     solver = Solver(
         model=model,
