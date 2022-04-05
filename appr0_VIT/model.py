@@ -52,7 +52,6 @@ class VisionTransformer(nn.Module):
         super().__init__()
 
         self.hparams = hparams
-        self.patch_size = patch_size
 
         # Layers/Networks
         self.input_layer = nn.Linear(flattened_dim, embed_dim)#num_channels*(patch_size**2), embed_dim)
@@ -72,6 +71,7 @@ class VisionTransformer(nn.Module):
         #print(x.shape)
         #x = img_to_patch(x, self.patch_size)
 
+        x = torch.flatten(x, 2)
         B, T, _ = x.shape
         x = self.input_layer(x)
 

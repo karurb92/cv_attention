@@ -61,7 +61,8 @@ class Patches:
             return x
 
         image = img_to_patch(img_dict['image'])
-        label = img_dict['label'].unsqueeze(1).expand(-1, image.shape[1])
+        #label = img_dict['label'].unsqueeze(1).expand(-1, image.shape[1])
+        label = img_dict['label']
         #full_tensor1 = torch.full((), img_dict['label'])
         img_dict['image'], img_dict['label'] = image, label
 

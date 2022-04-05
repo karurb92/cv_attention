@@ -58,7 +58,7 @@ class DataGenerator:
         for i, index in enumerate(index_iterator):  # iterate over indices using the iterator
 
             batch.append(self.dataset[index])
-
+            
             if len(batch) == self.batch_size:
                 yield build_batch_from_list(batch)  # use yield keyword to define a iterable generator
                 batch = []

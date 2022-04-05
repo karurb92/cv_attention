@@ -36,10 +36,10 @@ class Solver(object):
         if validation:
             with torch.no_grad():
                 predictions = self.model.forward(images)
-            loss = self.loss_func(predictions, labels)
+            loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())
         else:
             predictions = self.model.forward(images)
-            loss = self.loss_func(predictions, labels)
+            loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())
             loss.backward()
             self.optimizer.step()
         return loss

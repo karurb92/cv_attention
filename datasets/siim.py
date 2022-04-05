@@ -34,6 +34,13 @@ class SIIM():
         train, val, test = np.split(meta_df.sample(frac=1, random_state=seed), 
                                         [int(split*meta_df.shape[0]), int(((1.0-split)/2.0+split)*meta_df.shape[0])])
 
+        ############### this here needs to go
+        if purpose=='train':
+            return ['ISIC_0015719','ISIC_0052212','ISIC_0075663','ISIC_0076545'], [1,0,0,0]
+        elif purpose=='val':
+            return ['ISIC_0079038', 'ISIC_0084270'], [1,0]
+        ######################
+
         if purpose=='train':
             return train['image_name'].tolist(), train['target'].tolist()
         elif purpose=='val':
