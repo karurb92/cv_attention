@@ -43,7 +43,7 @@ class DataGenerator:
         ''' 
         def build_batch_from_list(batch):
             batch_dict = {
-                'image': torch.stack([img['image'] for img in batch], dim=0).squeeze(),
+                'image': torch.stack([img['image'] for img in batch], dim=0).squeeze(1),
                 'label': torch.stack([img['label'] for img in batch], dim=0).squeeze()
             }
             return batch_dict
@@ -58,12 +58,12 @@ class DataGenerator:
         for i, index in enumerate(index_iterator):  # iterate over indices using the iterator
 
             batch.append(self.dataset[index])
-            
+
             if len(batch) == self.batch_size:
                 yield build_batch_from_list(batch)  # use yield keyword to define a iterable generator
                 batch = []
             
-            if i + 1 == len(self.dataset) and not self.drop_last:
+            if i + 1 == len(self.dataset) and not self.drop_last and len(batch)>0:
                 yield build_batch_from_list(batch)  # use yield keyword to define a iterable generator
                 batch = []
 

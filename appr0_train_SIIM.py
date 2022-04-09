@@ -17,9 +17,9 @@ from appr0_VIT.data_generator import DataGenerator
 
 if __name__ == "__main__":
     hparams = {
-        'batch_size': 8,
+        'batch_size': 32,
         'learning_rate': 1e-3,
-        'epochs': 2,
+        'epochs': 50,
         'loss_func': torch.nn.BCEWithLogitsLoss(),
         'optimizer': optim.AdamW,
         'patch_num': 8,
@@ -58,7 +58,7 @@ if __name__ == "__main__":
                                     'hparams': hparams
                                 })
 
-    patience = 3
+    patience = 20
 
     solver = Solver(
         model=model,

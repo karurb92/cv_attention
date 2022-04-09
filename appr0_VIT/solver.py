@@ -42,7 +42,7 @@ class Solver(object):
             loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())
             loss.backward()
             self.optimizer.step()
-        return loss
+        return loss, predictions
 
 
     def train(self):
@@ -52,6 +52,8 @@ class Solver(object):
             ######################### Iterate over all training samples #########################
             train_epoch_loss = 0.0
             running_loss = 0.0
+            train_correct = 0
+            train_total = 0
         
             for i, batch in enumerate(self.train_dataloader):
                 
@@ -61,7 +63,14 @@ class Solver(object):
                 images = images.to(self.device)
                 labels = labels.to(self.device)
         
-                train_loss = self._step(images, labels, validation=False)
+                train_loss, predictions = self._step(images, labels, validation=False)
+
+                label_pred = torch.argmax(predictions, dim=1)
+                train_correct += sum(label_pred == labels)
+                if labels.shape:
+                    train_total += labels.shape[0]
+                else:
+                    train_total += 1
 
                 train_epoch_loss += train_loss
                 running_loss += train_loss
@@ -75,10 +84,12 @@ class Solver(object):
 
             train_epoch_loss /= len(self.train_dataloader)
             self.train_loss_history.append(train_epoch_loss)
-
+            print(f'Train loss after epoch {epoch+1}: {train_epoch_loss}')
 
             ######################### Iterate over all validation samples #########################
             val_epoch_loss = 0.0
+            val_correct = 0
+            val_total = 0
 
             for batch in self.val_dataloader:
 
@@ -89,18 +100,26 @@ class Solver(object):
                 labels = labels.to(self.device)
 
                 # Compute Loss - no param update at validation time!
-                val_loss = self._step(images, labels, validation=True)
+                val_loss, predictions = self._step(images, labels, validation=True)
+
+                label_pred = torch.argmax(predictions, dim=1)
+                val_correct += sum(label_pred == labels)
+                if labels.shape:
+                    val_total += labels.shape[0]
+                else:
+                    val_total += 1
 
                 val_epoch_loss += val_loss
                 self.val_batch_loss.append(val_loss)
                 
             val_epoch_loss /= len(self.val_dataloader)
             self.val_loss_history.append(val_epoch_loss)
+            print(f'Val loss after epoch {epoch+1}: {val_epoch_loss}')
 
 
             ######################### Report on accuracies #########################
-            train_epoch_acc = self.get_dataset_accuracy(self.train_dataloader)
-            val_epoch_acc = self.get_dataset_accuracy(self.val_dataloader)
+            train_epoch_acc = train_correct/train_total
+            val_epoch_acc = val_correct/val_total
             self.train_acc_history.append(train_epoch_acc)
             self.val_acc_history.append(val_epoch_acc)
             print(f'Training accuracy after epoch {epoch+1}: {train_epoch_acc}')
