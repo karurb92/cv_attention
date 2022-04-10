@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as data
 import torch.optim as optim
+import csv
 from functools import reduce
 
 from datasets.siim import SIIM
@@ -69,6 +70,12 @@ if __name__ == "__main__":
     )
 
     solver.train()
+
+    log = np.array([solver.train_loss_history,solver.train_acc_history,solver.val_loss_history,solver.val_acc_history])
+    
+    with open('my2file.csv', 'w', newline='') as file:
+        mywriter = csv.writer(file, delimiter=',')
+        mywriter.writerows(log)
 
     os.makedirs('trained_models', exist_ok=True)
     models_path = os.path.join(repo_root, 'trained_models')

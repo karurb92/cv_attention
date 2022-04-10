@@ -42,7 +42,7 @@ class Solver(object):
             loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())
             loss.backward()
             self.optimizer.step()
-        return loss, predictions
+        return loss.item(), predictions
 
 
     def train(self):
@@ -66,7 +66,7 @@ class Solver(object):
                 train_loss, predictions = self._step(images, labels, validation=False)
 
                 label_pred = torch.argmax(predictions, dim=1)
-                train_correct += sum(label_pred == labels)
+                train_correct += sum(label_pred == labels).item()
                 if labels.shape:
                     train_total += labels.shape[0]
                 else:
@@ -103,7 +103,7 @@ class Solver(object):
                 val_loss, predictions = self._step(images, labels, validation=True)
 
                 label_pred = torch.argmax(predictions, dim=1)
-                val_correct += sum(label_pred == labels)
+                val_correct += sum(label_pred == labels).item()
                 if labels.shape:
                     val_total += labels.shape[0]
                 else:
