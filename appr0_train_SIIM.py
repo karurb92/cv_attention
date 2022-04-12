@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.utils.data as data
 import torch.optim as optim
 import csv
+import pandas as pd
 from functools import reduce
 
 from datasets.siim import SIIM
@@ -71,12 +72,35 @@ if __name__ == "__main__":
 
     solver.train()
 
-    log = np.array([solver.train_loss_history,solver.train_acc_history,solver.val_loss_history,solver.val_acc_history])
-    
-    with open('my2file.csv', 'w', newline='') as file:
-        mywriter = csv.writer(file, delimiter=',')
-        mywriter.writerows(log)
-
+    ########## SAVE MODEL ##########
     os.makedirs('trained_models', exist_ok=True)
     models_path = os.path.join(repo_root, 'trained_models')
-    model.save(os.path.join(models_path, f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}.model'))
+    model_name = f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}'
+    model.save(os.path.join(models_path, f'{model_name}.model'))
+
+    ########## SAVE STATISTICS ##########
+    measurements = {
+        'epoch': [i+1 for i in range(len(solver.train_loss_history))],
+        'train_loss': solver.train_loss_history,
+        'val_loss': solver.val_loss_history,
+        'train_TP': solver.train_TP_history,
+        'train_FP': solver.train_FP_history,
+        'train_TN': solver.train_TN_history,
+        'train_FN': solver.train_FN_history,
+        'val_TP': solver.val_TP_history,
+        'val_FP': solver.val_FP_history,
+        'val_TN': solver.val_TN_history,
+        'val_FN': solver.val_FN_history,
+    }
+
+    measurements = pd.DataFrame(measurements)
+    measurements['train_accuracy'] = (measurements['train_TP'] + measurements['train_TN']) / (measurements['train_TP'] + measurements['train_TN'] + measurements['train_FP'] + measurements['train_FN'])
+    measurements['train_recall'] = measurements['train_TP'] / (measurements['train_TP'] + measurements['train_FN'])
+    measurements['train_precision'] = measurements['train_TP'] / (measurements['train_TP'] + measurements['train_FP'])
+    measurements['train_f1'] = 2 * (measurements['train_recall'] * measurements['train_precision']) / (measurements['train_recall'] + measurements['train_precision'])
+    measurements['val_accuracy'] = (measurements['val_TP'] + measurements['val_TN']) / (measurements['val_TP'] + measurements['val_TN'] + measurements['val_FP'] + measurements['val_FN'])
+    measurements['val_recall'] = measurements['val_TP'] / (measurements['val_TP'] + measurements['val_FN'])
+    measurements['val_precision'] = measurements['val_TP'] / (measurements['val_TP'] + measurements['val_FP'])
+    measurements['val_f1'] = 2 * (measurements['val_recall'] * measurements['val_precision']) / (measurements['val_recall'] + measurements['val_precision'])
+
+    measurements.to_csv(os.path.join(models_path, f'{model_name}.csv'), sep='|')
