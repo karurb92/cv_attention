@@ -1,6 +1,7 @@
 import os
 
 import torch
+import time
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as data
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     ########## SAVE MODEL ##########
     os.makedirs('trained_models', exist_ok=True)
     models_path = os.path.join(repo_root, 'trained_models')
-    model_name = f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}'
+    model_name = f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}_{time.ctime()}'
     model.save(os.path.join(models_path, f'{model_name}.model'))
 
     ########## SAVE STATISTICS ##########
