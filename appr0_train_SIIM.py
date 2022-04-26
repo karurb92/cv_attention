@@ -28,7 +28,7 @@ if __name__ == "__main__":
         'learning_rate': 1e-3,
         'epochs': 50,
         #'loss_func': torch.nn.BCEWithLogitsLoss(),
-        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=1),
+        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=1), #more val of gamma means more weight on the misclassified sampls
         'optimizer': optim.AdamW,
         'patch_num': 8,
         'new_size': (3, 400, 500)
