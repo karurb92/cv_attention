@@ -9,6 +9,8 @@ import torch.optim as optim
 import csv
 import pandas as pd
 from functools import reduce
+from time import time
+import math
 
 from datasets.siim import SIIM
 from data_processing.transforms import *
@@ -16,14 +18,17 @@ from data_processing.transforms import *
 from appr0_VIT.model import VisionTransformer
 from appr0_VIT.solver import Solver
 from appr0_VIT.data_generator import DataGenerator
-
+from losses import LDAMLoss, FocalLoss
 
 if __name__ == "__main__":
+    # DRW type produced cls weights with values 1. each.
+    per_cls_weights = torch.FloatTensor([1.,1.])
     hparams = {
         'batch_size': 32,
         'learning_rate': 1e-3,
         'epochs': 50,
-        'loss_func': torch.nn.BCEWithLogitsLoss(),
+        #'loss_func': torch.nn.BCEWithLogitsLoss(),
+        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=1),
         'optimizer': optim.AdamW,
         'patch_num': 8,
         'new_size': (3, 400, 500)
@@ -76,7 +81,7 @@ if __name__ == "__main__":
     ########## SAVE MODEL ##########
     os.makedirs('trained_models', exist_ok=True)
     models_path = os.path.join(repo_root, 'trained_models')
-    model_name = f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}_{time.ctime()}'
+    model_name = f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}_{math.floor(time())}'
     model.save(os.path.join(models_path, f'{model_name}.model'))
 
     ########## SAVE STATISTICS ##########
