@@ -5,8 +5,9 @@ from torchvision import transforms
 import os
 import numpy as np
 import pandas as pd
+from torch.utils.data import Dataset
 
-class SIIM():
+class SIIM(Dataset):
     """Gon Refuge dataset class"""
 
     def __init__(self, root, purpose, seed, split, transform=None):

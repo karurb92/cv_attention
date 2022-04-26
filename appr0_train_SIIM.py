@@ -4,7 +4,7 @@ import torch
 import time
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.utils.data as data
+from torch.utils.data import DataLoader
 import torch.optim as optim
 import csv
 import pandas as pd
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         'learning_rate': 1e-3,
         'epochs': 50,
         #'loss_func': torch.nn.BCEWithLogitsLoss(),
-        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=1), #more val of gamma means more weight on the misclassified sampls
+        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=2), #more val of gamma means more weight on the misclassified sampls
         'optimizer': optim.AdamW,
         'patch_num': 8,
         'new_size': (3, 400, 500)
@@ -46,9 +46,19 @@ if __name__ == "__main__":
 
     train = SIIM(root=data_root, purpose='train', seed=seed, split=split, transform=transforms)
     val = SIIM(root=data_root, purpose='val', seed=seed, split=split, transform=transforms)
+    
+    def collate_data(batch):
+        batch_dict = {
+            'image': torch.stack([img['image'] for img in batch], dim=0).squeeze(1),
+            'label': torch.stack([img['label'] for img in batch], dim=0).squeeze()
+        }
+        return batch_dict
 
-    train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"])
-    val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"])
+    train_dataloader = DataLoader(dataset=train, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
+    val_dataloader = DataLoader(dataset=train, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
+    
+    # train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"])
+    # val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"])
 
     flattened_dim = reduce((lambda x, y: x * y), hparams['new_size'])
 
