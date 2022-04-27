@@ -25,7 +25,7 @@ if __name__ == "__main__":
     # DRW type produced cls weights with values 1. each.
     per_cls_weights = torch.FloatTensor([1.,1.])
     hparams = {
-        'batch_size': 32,
+        'batch_size': 16,
         'learning_rate': 1e-3,
         'epochs': 50,
         'loss_func': torch.nn.BCEWithLogitsLoss(),
@@ -55,8 +55,8 @@ if __name__ == "__main__":
         }
         return batch_dict
 
-    train_dataloader = DataLoader(dataset=train, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
-    val_dataloader = DataLoader(dataset=val, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
+    train_dataloader = DataLoader(dataset=train,num_workers=4, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
+    val_dataloader = DataLoader(dataset=val,num_workers=4, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
 
     # train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"])
     # val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"])
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     model = SIIMTrainer(model)
 
-    trainer = pl.Trainer(accelerator="cpu",max_epochs=3)
+    trainer = pl.Trainer(max_epochs=hparams['epochs'])
     trainer.fit(model, train_dataloader, val_dataloader)
     # %load_ext tensorboard
     # %tensorboard --logdir lightning_logs/
