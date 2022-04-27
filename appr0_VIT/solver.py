@@ -45,12 +45,12 @@ class Solver(object):
         if validation:
             with torch.no_grad():
                 predictions = self.model.forward(images)
-            #loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())    
-            loss = self.loss_func(predictions.squeeze(), labels)
+            loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())    
+            #loss = self.loss_func(predictions.squeeze(), labels)
         else:
             predictions = self.model.forward(images)
-            #loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())
-            loss = self.loss_func(predictions.squeeze(), labels)
+            loss = self.loss_func(predictions[:, 1].squeeze(), labels.float())
+            #loss = self.loss_func(predictions.squeeze(), labels)
             loss.backward()
             self.optimizer.step()
         return loss.item(), predictions

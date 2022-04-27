@@ -28,8 +28,8 @@ if __name__ == "__main__":
         'batch_size': 32,
         'learning_rate': 1e-3,
         'epochs': 50,
-        #'loss_func': torch.nn.BCEWithLogitsLoss(),
-        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=2), #more val of gamma means more weight on the misclassified sampls
+        'loss_func': torch.nn.BCEWithLogitsLoss(),
+        #'loss_func':  FocalLoss(weight=per_cls_weights, gamma=2), #more val of gamma means more weight on the misclassified sampls
         'optimizer': optim.AdamW,
         'patch_num': 8,
         'new_size': (3, 400, 500)
@@ -79,22 +79,25 @@ if __name__ == "__main__":
 
     patience = 20
 
+
     model = SIIMTrainer(model)
 
     trainer = pl.Trainer(accelerator="cpu",max_epochs=3)
     trainer.fit(model, train_dataloader, val_dataloader)
+    # %load_ext tensorboard
+    # %tensorboard --logdir lightning_logs/
+    
+    #trainer.test()
 
-    trainer.test()
+    # solver = Solver(
+    #     model=model,
+    #     train_dataloader=train_dataloader,
+    #     val_dataloader=val_dataloader,
+    #     device=device,
+    #     patience=patience
+    # )
 
-    # # solver = Solver(
-    # #     model=model,
-    # #     train_dataloader=train_dataloader,
-    # #     val_dataloader=val_dataloader,
-    # #     device=device,
-    # #     patience=patience
-    # # )
-
-    # # solver.train()
+    # solver.train()
 
     # ########## SAVE MODEL ##########
     # os.makedirs('trained_models', exist_ok=True)
