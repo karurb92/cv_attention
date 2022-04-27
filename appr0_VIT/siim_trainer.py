@@ -47,7 +47,7 @@ class SIIMTrainer(pl.LightningModule):
         confusion_matrix = torchmetrics.functional.confusion_matrix(preds, targets, num_classes=2)
 
         df_cm = pd.DataFrame(confusion_matrix.numpy(), index = range(2), columns=range(2))
-        plt.figure(figsize = (2,7))
+        plt.figure(figsize = (2,4))
         fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
         plt.close(fig_)
         
