@@ -5,6 +5,10 @@ from torch.nn import functional as F
 import torchmetrics
 import os
 
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 class SIIMTrainer(pl.LightningModule):
 
 
@@ -34,6 +38,20 @@ class SIIMTrainer(pl.LightningModule):
         val_acc = torchmetrics.functional.accuracy(logits, y)
         self.log('valid_acc', val_acc, on_step=True, on_epoch=True)
         self.log('val_loss', loss,on_step=True)
+
+        return { 'loss': loss, 'preds': logits, 'target': y}
+
+    def validation_epoch_end(self, outputs):
+        preds = torch.cat([tmp['preds'] for tmp in outputs])
+        targets = torch.cat([tmp['target'] for tmp in outputs])
+        confusion_matrix = torchmetrics.functional.confusion_matrix(preds, targets, num_classes=2)
+
+        df_cm = pd.DataFrame(confusion_matrix.numpy(), index = range(2), columns=range(2))
+        plt.figure(figsize = (2,7))
+        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
+        plt.close(fig_)
+        
+        self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
