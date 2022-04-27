@@ -134,3 +134,4 @@ local_work/
 trained_models/
 saved_models/
 dataset/
+lightning_logs/

@@ -70,7 +70,6 @@ class VisionTransformer(nn.Module):
         # Preprocess input
         #print(x.shape)
         #x = img_to_patch(x, self.patch_size)
-
         x = torch.flatten(x, 2)
         B, T, _ = x.shape
         x = self.input_layer(x)

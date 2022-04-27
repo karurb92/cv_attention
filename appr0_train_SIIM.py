@@ -1,5 +1,5 @@
 import os
-
+import pytorch_lightning as pl
 import torch
 import time
 import torch.nn as nn
@@ -17,6 +17,7 @@ from data_processing.transforms import *
 
 from appr0_VIT.model import VisionTransformer
 from appr0_VIT.solver import Solver
+from appr0_VIT.siim_trainer import SIIMTrainer
 from appr0_VIT.data_generator import DataGenerator
 from losses import LDAMLoss, FocalLoss
 
@@ -55,8 +56,8 @@ if __name__ == "__main__":
         return batch_dict
 
     train_dataloader = DataLoader(dataset=train, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
-    val_dataloader = DataLoader(dataset=train, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
-    
+    val_dataloader = DataLoader(dataset=val, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
+
     # train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"])
     # val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"])
 
@@ -78,45 +79,52 @@ if __name__ == "__main__":
 
     patience = 20
 
-    solver = Solver(
-        model=model,
-        train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader,
-        device=device,
-        patience=patience
-    )
+    model = SIIMTrainer(model)
 
-    solver.train()
+    trainer = pl.Trainer(accelerator="cpu",max_epochs=3)
+    trainer.fit(model, train_dataloader, val_dataloader)
 
-    ########## SAVE MODEL ##########
-    os.makedirs('trained_models', exist_ok=True)
-    models_path = os.path.join(repo_root, 'trained_models')
-    model_name = f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}_{math.floor(time())}'
-    model.save(os.path.join(models_path, f'{model_name}.model'))
+    trainer.test()
 
-    ########## SAVE STATISTICS ##########
-    measurements = {
-        'epoch': [i+1 for i in range(len(solver.train_loss_history))],
-        'train_loss': solver.train_loss_history,
-        'val_loss': solver.val_loss_history,
-        'train_TP': solver.train_TP_history,
-        'train_FP': solver.train_FP_history,
-        'train_TN': solver.train_TN_history,
-        'train_FN': solver.train_FN_history,
-        'val_TP': solver.val_TP_history,
-        'val_FP': solver.val_FP_history,
-        'val_TN': solver.val_TN_history,
-        'val_FN': solver.val_FN_history,
-    }
+    # # solver = Solver(
+    # #     model=model,
+    # #     train_dataloader=train_dataloader,
+    # #     val_dataloader=val_dataloader,
+    # #     device=device,
+    # #     patience=patience
+    # # )
 
-    measurements = pd.DataFrame(measurements)
-    measurements['train_accuracy'] = (measurements['train_TP'] + measurements['train_TN']) / (measurements['train_TP'] + measurements['train_TN'] + measurements['train_FP'] + measurements['train_FN'])
-    measurements['train_recall'] = measurements['train_TP'] / (measurements['train_TP'] + measurements['train_FN'])
-    measurements['train_precision'] = measurements['train_TP'] / (measurements['train_TP'] + measurements['train_FP'])
-    measurements['train_f1'] = 2 * (measurements['train_recall'] * measurements['train_precision']) / (measurements['train_recall'] + measurements['train_precision'])
-    measurements['val_accuracy'] = (measurements['val_TP'] + measurements['val_TN']) / (measurements['val_TP'] + measurements['val_TN'] + measurements['val_FP'] + measurements['val_FN'])
-    measurements['val_recall'] = measurements['val_TP'] / (measurements['val_TP'] + measurements['val_FN'])
-    measurements['val_precision'] = measurements['val_TP'] / (measurements['val_TP'] + measurements['val_FP'])
-    measurements['val_f1'] = 2 * (measurements['val_recall'] * measurements['val_precision']) / (measurements['val_recall'] + measurements['val_precision'])
+    # # solver.train()
 
-    measurements.to_csv(os.path.join(models_path, f'{model_name}.csv'), sep='|')
+    # ########## SAVE MODEL ##########
+    # os.makedirs('trained_models', exist_ok=True)
+    # models_path = os.path.join(repo_root, 'trained_models')
+    # model_name = f'vitmodel_batch{hparams["batch_size"]}_lr{hparams["learning_rate"]}_epochs{hparams["epochs"]}_{math.floor(time())}'
+    # model.save(os.path.join(models_path, f'{model_name}.model'))
+
+    # ########## SAVE STATISTICS ##########
+    # measurements = {
+    #     'epoch': [i+1 for i in range(len(solver.train_loss_history))],
+    #     'train_loss': solver.train_loss_history,
+    #     'val_loss': solver.val_loss_history,
+    #     'train_TP': solver.train_TP_history,
+    #     'train_FP': solver.train_FP_history,
+    #     'train_TN': solver.train_TN_history,
+    #     'train_FN': solver.train_FN_history,
+    #     'val_TP': solver.val_TP_history,
+    #     'val_FP': solver.val_FP_history,
+    #     'val_TN': solver.val_TN_history,
+    #     'val_FN': solver.val_FN_history,
+    # }
+
+    # measurements = pd.DataFrame(measurements)
+    # measurements['train_accuracy'] = (measurements['train_TP'] + measurements['train_TN']) / (measurements['train_TP'] + measurements['train_TN'] + measurements['train_FP'] + measurements['train_FN'])
+    # measurements['train_recall'] = measurements['train_TP'] / (measurements['train_TP'] + measurements['train_FN'])
+    # measurements['train_precision'] = measurements['train_TP'] / (measurements['train_TP'] + measurements['train_FP'])
+    # measurements['train_f1'] = 2 * (measurements['train_recall'] * measurements['train_precision']) / (measurements['train_recall'] + measurements['train_precision'])
+    # measurements['val_accuracy'] = (measurements['val_TP'] + measurements['val_TN']) / (measurements['val_TP'] + measurements['val_TN'] + measurements['val_FP'] + measurements['val_FN'])
+    # measurements['val_recall'] = measurements['val_TP'] / (measurements['val_TP'] + measurements['val_FN'])
+    # measurements['val_precision'] = measurements['val_TP'] / (measurements['val_TP'] + measurements['val_FP'])
+    # measurements['val_f1'] = 2 * (measurements['val_recall'] * measurements['val_precision']) / (measurements['val_recall'] + measurements['val_precision'])
+
+    # measurements.to_csv(os.path.join(models_path, f'{model_name}.csv'), sep='|')
