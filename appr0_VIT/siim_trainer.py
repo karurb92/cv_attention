@@ -24,7 +24,8 @@ class SIIMTrainer(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
       x, y = train_batch['image'], train_batch['label']
       logits = self.model.forward(x)
-      loss = self.loss_func(logits[:, 1].squeeze(), y.float()) 
+      loss = self.loss_func.forward(logits.squeeze(), y)
+      #loss = self.loss_func(logits[:, 1].squeeze(), y.float()) 
       train_acc = torchmetrics.functional.accuracy(logits, y)
       self.log('train_acc', train_acc, on_step=True, on_epoch=False)
       self.log('train_loss', loss,on_step=True)
@@ -33,8 +34,8 @@ class SIIMTrainer(pl.LightningModule):
     def validation_step(self, val_batch, batch_idx):
         x, y = val_batch['image'], val_batch['label']
         logits = self.model.forward(x)
-        loss = self.cross_entropy_loss(logits, y)
-        loss = self.loss_func(logits[:, 1].squeeze(), y.float()) 
+        loss = self.loss_func.forward(logits.squeeze(), y)
+        #loss = self.loss_func(logits[:, 1].squeeze(), y.float()) 
         val_acc = torchmetrics.functional.accuracy(logits, y)
         self.log('valid_acc', val_acc, on_step=True, on_epoch=True)
         self.log('val_loss', loss,on_step=True)
@@ -46,7 +47,7 @@ class SIIMTrainer(pl.LightningModule):
         targets = torch.cat([tmp['target'] for tmp in outputs])
         confusion_matrix = torchmetrics.functional.confusion_matrix(preds, targets, num_classes=2)
 
-        df_cm = pd.DataFrame(confusion_matrix.numpy(), index = range(2), columns=range(2))
+        df_cm = pd.DataFrame(confusion_matrix.cpu().numpy(), index = range(2), columns=range(2))
         plt.figure(figsize = (2,4))
         fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
         plt.close(fig_)

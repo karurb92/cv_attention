@@ -23,13 +23,14 @@ from losses import LDAMLoss, FocalLoss
 
 if __name__ == "__main__":
     # DRW type produced cls weights with values 1. each.
-    per_cls_weights = torch.FloatTensor([1.,1.])
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    per_cls_weights = torch.FloatTensor([1.,1.]).cuda() if torch.cuda.is_available() else torch.FloatTensor([1.,1.])
     hparams = {
         'batch_size': 16,
         'learning_rate': 1e-3,
-        'epochs': 50,
-        'loss_func': torch.nn.BCEWithLogitsLoss(),
-        #'loss_func':  FocalLoss(weight=per_cls_weights, gamma=2), #more val of gamma means more weight on the misclassified sampls
+        'epochs': 3,
+        #'loss_func': torch.nn.BCEWithLogitsLoss(),
+        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=2), #more val of gamma means more weight on the misclassified sampls
         'optimizer': optim.AdamW,
         'patch_num': 8,
         'new_size': (3, 400, 500)
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     repo_root = os.path.abspath(os.getcwd())
     model_root = os.path.join(repo_root, "trained_models")
     data_root = os.path.join(repo_root, "data/siim")
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
     seed = 42
     split = 0.7
     num_classes = 2
@@ -55,8 +56,8 @@ if __name__ == "__main__":
         }
         return batch_dict
 
-    train_dataloader = DataLoader(dataset=train,num_workers=4, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
-    val_dataloader = DataLoader(dataset=val,num_workers=4, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
+    train_dataloader = DataLoader(dataset=train, batch_size=hparams["batch_size"], shuffle=True,collate_fn=lambda batch: collate_data(batch))
+    val_dataloader = DataLoader(dataset=val, batch_size=hparams["batch_size"], shuffle=False,collate_fn=lambda batch: collate_data(batch))
 
     # train_dataloader = DataGenerator(train, batch_size=hparams["batch_size"])
     # val_dataloader = DataGenerator(val, batch_size=hparams["batch_size"])
@@ -82,10 +83,8 @@ if __name__ == "__main__":
 
     model = SIIMTrainer(model)
 
-    trainer = pl.Trainer(max_epochs=hparams['epochs'])
+    trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu",max_epochs=hparams['epochs'])
     trainer.fit(model, train_dataloader, val_dataloader)
-    # %load_ext tensorboard
-    # %tensorboard --logdir lightning_logs/
     
     #trainer.test()
 
