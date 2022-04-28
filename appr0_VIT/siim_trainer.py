@@ -29,7 +29,7 @@ class SIIMTrainer(pl.LightningModule):
       train_acc = torchmetrics.functional.accuracy(logits, y)
       self.log('train_acc', train_acc, on_step=True, on_epoch=False)
       self.log('train_loss', loss,on_step=True)
-      return loss
+      return {'loss': loss}
 
     def validation_step(self, val_batch, batch_idx):
         x, y = val_batch['image'], val_batch['label']
@@ -40,7 +40,7 @@ class SIIMTrainer(pl.LightningModule):
         self.log('valid_acc', val_acc, on_step=True, on_epoch=True)
         self.log('val_loss', loss,on_step=True)
 
-        return { 'loss': loss, 'preds': logits, 'target': y}
+        return { 'loss': loss.item(), 'preds': logits, 'target': y}
 
     def validation_epoch_end(self, outputs):
         preds = torch.cat([tmp['preds'] for tmp in outputs])

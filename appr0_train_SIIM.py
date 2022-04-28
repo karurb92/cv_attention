@@ -39,7 +39,6 @@ if __name__ == "__main__":
     repo_root = os.path.abspath(os.getcwd())
     model_root = os.path.join(repo_root, "trained_models")
     data_root = os.path.join(repo_root, "data/siim")
-    
     seed = 42
     split = 0.7
     num_classes = 2
