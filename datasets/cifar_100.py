@@ -6,13 +6,15 @@ Definition of Cifar100 dataset class
 - if we ever decide to work with another dataset, the only thing that we will need to do is to write such a class for it. the idea is that all the rest stays the same
 - if you wanna familiarize yourself more with the concept of having such class, check I2DL course, exercise 3. code below is 100% inspired by it
 """
-
+import torch
 import numpy as np
 import pickle
 import random
+from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
+from torchvision import transforms
 
-
-class Cifar100():
+class Cifar100(Dataset):
     """CIFAR-100 dataset class"""
 
     def __init__(self, root, purpose, seed, split=0.8, transform=None):
@@ -57,6 +59,8 @@ class Cifar100():
             random.seed(seed)
             random_mask = random.sample([i for i in range(n)], int(split*n))
             images = np.array(data_file['data'])[random_mask].astype(float)
+            images = images.reshape(35000, 3, 32, 32).transpose(0,2,3,1).astype("uint8")
+           
             labels = np.array(data_file['coarse_labels'])[random_mask]
             return images, labels
         elif purpose=='val':
@@ -65,11 +69,14 @@ class Cifar100():
             random.seed(seed)
             random_mask = random.sample([i for i in range(n)], int(split*n))
             images = np.delete(np.array(data_file['data']), random_mask, axis=0).astype(float)
+            images = images.reshape(15000, 3, 32, 32).transpose(0,2,3,1).astype("uint8")
             labels = np.delete(np.array(data_file['coarse_labels']), random_mask, axis=0)
             return images, labels
         elif purpose=='test':
             data_file = Cifar100._unpickle(f'{directory}/cifar-100-python/test')
-            return np.array(data_file['data']).astype(float), data_file['coarse_labels']
+            images = np.array(data_file['data']).astype(float)
+            #images = images.reshape(35000, 3, 32, 32).transpose(0,2,3,1).astype("uint8")
+            return images , data_file['coarse_labels']
 
 
     def __len__(self):
@@ -83,11 +90,13 @@ class Cifar100():
             {"image": <i-th image>,                                              #
              "label": <label of i-th image>} 
         """
-
         data_dict = {}
-
-        data_dict['image'] = self.images[index]
-        data_dict['label'] = self.labels[index]
+        trans = transforms.ToTensor()
+        
+        img = trans(self.images[index])
+        data_dict['image'] = img.unsqueeze(0)
+        #data_dict['image'] = np.expand_dims(self.images[index], axis=0)
+        data_dict['label'] = torch.tensor(self.labels[index])
 
         for transform in self.transform:
             data_dict = transform(data_dict)
