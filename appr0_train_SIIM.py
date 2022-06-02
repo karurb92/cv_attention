@@ -25,12 +25,15 @@ if __name__ == "__main__":
     # DRW type produced cls weights with values 1. each.
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     per_cls_weights = torch.FloatTensor([1.,1.]).cuda() if torch.cuda.is_available() else torch.FloatTensor([1.,1.])
+    # γ controls the shape of the curve. The higher the value of γ, the lower the loss for well-classified examples, 
+    # so we could turn the attention of the model more towards ‘hard-to-classify examples. 
+    # Having higher γ extends the range in which an example receives low loss.
     hparams = {
         'batch_size': 16,
         'learning_rate': 1e-3,
         'epochs': 3,
         #'loss_func': torch.nn.BCEWithLogitsLoss(),
-        'loss_func':  FocalLoss(weight=per_cls_weights, gamma=2), #more val of gamma means more weight on the misclassified sampls
+        'loss_func':  FocalLoss(gamma=15), #more val of gamma means more weight on the misclassified sampls
         'optimizer': optim.AdamW,
         'patch_num': 8,
         'new_size': (3, 400, 500)
