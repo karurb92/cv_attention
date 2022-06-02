@@ -24,6 +24,7 @@ class SIIMTrainer(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
       x, y = train_batch['image'], train_batch['label']
       logits = self.model.forward(x)
+      # Use this for BCE
       #loss = self.loss_func.forward(logits.squeeze(), y)
       loss = self.loss_func(logits[:, 1].squeeze(), y.float()) 
       train_acc = torchmetrics.functional.accuracy(logits, y)
@@ -34,6 +35,7 @@ class SIIMTrainer(pl.LightningModule):
     def validation_step(self, val_batch, batch_idx):
         x, y = val_batch['image'], val_batch['label']
         logits = self.model.forward(x)
+        # Use this for BCE
         #loss = self.loss_func.forward(logits.squeeze(), y)
         loss = self.loss_func(logits[:, 1].squeeze(), y.float()) 
         val_acc = torchmetrics.functional.accuracy(logits, y)
