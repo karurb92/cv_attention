@@ -1,3 +1,4 @@
+
 import os
 import pytorch_lightning as pl
 import torch
@@ -20,20 +21,19 @@ from appr0_VIT.solver import Solver
 from appr0_VIT.siim_trainer import SIIMTrainer
 from appr0_VIT.data_generator import DataGenerator
 from losses import LDAMLoss, FocalLoss
+import torchvision.transforms as transforms
 
 if __name__ == "__main__":
     # DRW type produced cls weights with values 1. each.
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    per_cls_weights = torch.FloatTensor([1.,1.]).cuda() if torch.cuda.is_available() else torch.FloatTensor([1.,1.])
-    # γ controls the shape of the curve. The higher the value of γ, the lower the loss for well-classified examples, 
-    # so we could turn the attention of the model more towards ‘hard-to-classify examples. 
-    # Having higher γ extends the range in which an example receives low loss.
+    per_cls_weights = torch.FloatTensor([1.,1.])
+    pos_weight  = 32542 / 584
+    pos_weight = torch.as_tensor(pos_weight, dtype=torch.float)
     hparams = {
         'batch_size': 16,
         'learning_rate': 1e-3,
         'epochs': 3,
-        #'loss_func': torch.nn.BCEWithLogitsLoss(),
-        'loss_func':  FocalLoss(gamma=15), #more val of gamma means more weight on the misclassified sampls
+        'loss_func': torch.nn.BCEWithLogitsLoss(pos_weight= pos_weight),
+        #'loss_func':  FocalLoss(weight=per_cls_weights, gamma=2), #more val of gamma means more weight on the misclassified sampls
         'optimizer': optim.AdamW,
         'patch_num': 8,
         'new_size': (3, 400, 500)
@@ -42,14 +42,27 @@ if __name__ == "__main__":
     repo_root = os.path.abspath(os.getcwd())
     model_root = os.path.join(repo_root, "trained_models")
     data_root = os.path.join(repo_root, "data/siim")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     seed = 42
     split = 0.7
     num_classes = 2
 
-    transforms = [Patches(patch_num=hparams['patch_num']), Resize(new_size=hparams['new_size'])]
+    transforms = transforms.Compose([
+     #transforms.ToPILImage(),
+     #transforms.Resize((300, 300)),
+     transforms.CenterCrop((100, 100)),
+     transforms.ColorJitter(brightness=0.7, contrast=0.7, saturation=0.7, hue=0.5),
+     transforms.RandomGrayscale(p=0.7),
+     transforms.RandomVerticalFlip(p=0.7),
+     transforms.ToTensor(),
+     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+     ])
 
-    train = SIIM(root=data_root, purpose='train', seed=seed, split=split, transform=transforms)
-    val = SIIM(root=data_root, purpose='val', seed=seed, split=split, transform=transforms)
+
+    tfm_on_patch = [Patches(patch_num=hparams['patch_num']), Resize(new_size=hparams['new_size'])]
+
+    train = SIIM(root=data_root, purpose='train', seed=seed, split=split, transforms=transforms, tfm_on_patch=tfm_on_patch)
+    val = SIIM(root=data_root, purpose='val', seed=seed, split=split, transforms=transforms, tfm_on_patch=tfm_on_patch)
     
     def collate_data(batch):
         batch_dict = {

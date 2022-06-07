@@ -6,17 +6,18 @@ import os
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
-
+from data_processing.transforms import *
 class SIIM(Dataset):
     """Gon Refuge dataset class"""
 
-    def __init__(self, root, purpose, seed, split, transform=None):
+    def __init__(self, root, purpose, seed, split, transforms=None, tfm_on_patch=None):
         self.root_path = root
         self.purpose = purpose
         self.seed = seed
         self.split = split
         self.images, self.labels = self._make_dataset(directory=self.root_path, purpose=self.purpose, seed=self.seed, split=self.split)
-        self.transform = transform
+        self.transforms = transforms
+        self.tfm_on_patch = tfm_on_patch
 
     @staticmethod
     def _make_dataset(directory, purpose, seed, split):
@@ -66,18 +67,24 @@ class SIIM(Dataset):
 
         img_root = os.path.join(self.root_path, f"jpeg/train/{self.images[index]}.jpg")
         img = Image.open(img_root)
-        trans = transforms.ToTensor()
-        img = trans(img)
+        #trans = transforms.ToTensor()
+        #img = trans(img)
         #img = torchvision.io.read_image(img_root)
+
+        if self.transforms is not None:
+            img = self.transforms(img)
 
         data_dict = {
             'image': img.unsqueeze(0),
             'label': torch.tensor([self.labels[index]])
         }
 
-        if self.transform is None: return data_dict
 
-        for transform in self.transform:
-            data_dict = transform(data_dict)
+        if self.tfm_on_patch is None: return data_dict
+
+        for tfm in self.tfm_on_patch:
+            data_dict = tfm(data_dict)
+
+        
 
         return data_dict
